@@ -71,6 +71,34 @@ resource "aws_iam_role_policy_attachment" "attach_ops" {
   policy_arn = aws_iam_policy.ops_access.arn
 }
 
+# Custom policy for SNS alerts
+resource "aws_iam_policy" "sns_access" {
+  name        = "healops-${var.environment}-sns-access"
+  description = "Allows the HealOps backend to publish and manage SNS alert subscriptions"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "sns:Publish",
+          "sns:Subscribe",
+          "sns:Unsubscribe",
+          "sns:ListSubscriptionsByTopic"
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "attach_sns" {
+  role       = module.iam_eks_role.iam_role_name
+  policy_arn = aws_iam_policy.sns_access.arn
+}
+
+
 # GitHub OIDC Provider (Allows GitHub Actions to authenticate)
 data "aws_iam_openid_connect_provider" "github" {
   arn = "arn:aws:iam::000622214837:oidc-provider/token.actions.githubusercontent.com"

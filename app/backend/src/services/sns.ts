@@ -4,8 +4,8 @@ import { SNSClient, PublishCommand, SubscribeCommand } from '@aws-sdk/client-sns
 // It automatically picks up credentials from the environment (or IRSA in Kubernetes)
 const snsClient = new SNSClient({ region: 'us-east-1' });
 
-// We would normally inject this from environment variables via Terraform outputs
-const SNS_TOPIC_ARN = process.env.SNS_TOPIC_ARN || 'arn:aws:sns:us-east-1:123456789012:healops-alerts';
+// Injected from environment variables or defaults to provisioned topic
+const SNS_TOPIC_ARN = process.env.SNS_TOPIC_ARN || 'arn:aws:sns:us-east-1:000622214837:healops-dev-alerts';
 
 /**
  * Sends a text message or email to all subscribed users on the topic.

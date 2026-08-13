@@ -53,3 +53,8 @@ spec:
               value: "production"
             - name: PORT
               value: "4000"
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: SNS_TOPIC_ARN
+              value: "arn:aws:sns:us-east-1:000622214837:healops-dev-alerts"
+
