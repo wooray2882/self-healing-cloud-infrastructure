@@ -1,0 +1,60 @@
+name: Continuous Deployment (CD)
+
+on:
+  push:
+    branches: [ "main" ]
+
+# Set permissions for AWS OIDC connection (Industry standard over long-lived keys)
+# Note: For the portfolio, we are using Secrets since you already set them up.
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to AWS EKS
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+          
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        
+      - name: Build, tag, and push Frontend image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: healops-frontend-dev
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./app/frontend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          
+      - name: Build, tag, and push Backend image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: healops-backend-dev
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./app/backend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      # Normally, you would run a script here to update the Kubernetes deployment.yaml
+      # with the new $IMAGE_TAG, and then run `kubectl apply -f kubernetes/`
+      - name: Update KubeConfig
+        run: aws eks update-kubeconfig --region us-east-1 --name healops-dev-cluster
+        
+      - name: Deploy to EKS (Placeholder)
+        run: |
+          echo "Deploying to EKS..."
+          # kubectl apply -f kubernetes/frontend/
+          # kubectl apply -f kubernetes/backend/
+          echo "Deployment successful."

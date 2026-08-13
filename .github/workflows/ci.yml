@@ -1,0 +1,87 @@
+name: Continuous Integration (CI)
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  lint-and-test:
+    name: Lint & Test Application
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+          
+      - name: Install Frontend Dependencies
+        working-directory: ./app/frontend
+        run: npm ci
+        
+      - name: Install Backend Dependencies
+        working-directory: ./app/backend
+        run: npm ci
+
+      # In a real app, we would run tests here: `npm run test`
+      - name: Run Build (Frontend)
+        working-directory: ./app/frontend
+        run: npm run build
+        
+      - name: Run Build (Backend)
+        working-directory: ./app/backend
+        run: npm run build
+
+  terraform-scan:
+    name: Terraform Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive ./terraform
+        
+      # Security scanning for Infrastructure as Code
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: ./terraform
+          soft_fail: true # Soft fail for portfolio purposes so the PR isn't blocked by minor warnings
+
+  container-scan:
+    name: Container Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build Frontend Image
+        run: docker build -t healops-frontend:test ./app/frontend
+        
+      - name: Run Trivy vulnerability scanner on Frontend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'healops-frontend:test'
+          format: 'table'
+          exit-code: '0' # Soft fail for the portfolio
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          
+      - name: Build Backend Image
+        run: docker build -t healops-backend:test ./app/backend
+        
+      - name: Run Trivy vulnerability scanner on Backend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'healops-backend:test'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
