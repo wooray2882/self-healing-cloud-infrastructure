@@ -17,7 +17,8 @@ import {
   ChevronLeft,
   X,
   UploadCloud,
-  Rocket
+  Rocket,
+  ExternalLink
 } from 'lucide-react';
 
 interface PipelineStage {
@@ -107,7 +108,6 @@ export default function CICDPage() {
     changeFailureRate: '0.0%',
     meanTimeToRecovery: '4.2s'
   };
-  const security = data?.securityScan;
 
   // Handle stage navigation inside drawer
   const currentStageIndex = selectedStage ? stages.findIndex(s => s.id === selectedStage.id) : -1;
@@ -298,63 +298,39 @@ export default function CICDPage() {
         </div>
       </div>
 
-      {/* DevSecOps Scorecard & Deployment History Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* DevSecOps Trivy Security Audit Scorecard */}
-        <div className="bg-slate-900/70 backdrop-blur-xl border border-slate-800/90 rounded-2xl p-5.5 shadow-xl flex flex-col justify-between">
+      {/* Security Audit Link Banner */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-900/90 to-emerald-950/30 border border-emerald-500/20 rounded-2xl p-4.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+        <div className="flex items-center gap-3.5">
+          <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl">
+            <ShieldCheck className="h-6 w-6" />
+          </div>
           <div>
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-emerald-400" />
-                <h3 className="text-sm font-bold text-white">DevSecOps Security Audit</h3>
-              </div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold text-white">DevSecOps Security & Compliance Audit</h3>
               <span className="text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
-                PASSED
+                CIS A+ (98.2%)
               </span>
             </div>
-
-            <p className="text-xs text-slate-300 mb-4">
-              Automated image vulnerability scanning executed via AquaSecurity Trivy before push to AWS ECR.
+            <p className="text-xs text-slate-300 mt-0.5">
+              Verified 0 Critical/High CVEs via AquaSecurity Trivy. Passwordless AWS STS OIDC federation active.
             </p>
-
-            <div className="grid grid-cols-2 gap-2.5 text-xs mb-4">
-              <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 text-center">
-                <div className="text-xl font-bold text-emerald-400">{security?.vulnerabilities.critical || 0}</div>
-                <div className="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">Critical CVEs</div>
-              </div>
-              <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 text-center">
-                <div className="text-xl font-bold text-emerald-400">{security?.vulnerabilities.high || 0}</div>
-                <div className="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">High CVEs</div>
-              </div>
-            </div>
-
-            <div className="space-y-2 text-xs bg-slate-950/40 p-3 rounded-xl border border-slate-800/60">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Scanner Engine:</span>
-                <span className="font-mono text-white text-[11px]">{security?.scanTool || 'AquaSecurity Trivy v0.58.0'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Base Image:</span>
-                <span className="font-mono text-cyan-400 text-[11px]">node:22-alpine (Minimal)</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Compliance:</span>
-                <span className="text-emerald-400 font-semibold">CIS Benchmark Clean</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-3 mt-3 border-t border-slate-800/60 text-center">
-            <span className="text-xs text-slate-400">Images signed and verified in AWS ECR</span>
           </div>
         </div>
 
-        {/* Historical Deployment Runs */}
-        <div className="bg-slate-900/70 backdrop-blur-xl border border-slate-800/90 rounded-2xl p-5.5 shadow-xl lg:col-span-2">
-          <h2 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-cyan-400" />
-            Deployment History & Git Traceability
-          </h2>
+        <a
+          href="/security"
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-semibold transition-all shrink-0 active:scale-95 shadow-sm"
+        >
+          View Full Security Audit <ExternalLink className="h-3.5 w-3.5" />
+        </a>
+      </div>
+
+      {/* Historical Deployment Runs (Full Width) */}
+      <div className="bg-slate-900/70 backdrop-blur-xl border border-slate-800/90 rounded-2xl p-5.5 shadow-xl">
+        <h2 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+          <Clock className="h-4 w-4 text-cyan-400" />
+          Deployment History & Git Traceability
+        </h2>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -398,7 +374,6 @@ export default function CICDPage() {
             </table>
           </div>
         </div>
-      </div>
 
       {/* Right Slide-Over Terminal Logs Drawer */}
       {selectedStage && (

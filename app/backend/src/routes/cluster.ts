@@ -9,9 +9,20 @@ import {
 } from '../services/kubernetes';
 import { getLiveMetrics, getLiveAlerts } from '../services/prometheus';
 import { getCICDPipelineData, triggerNewPipelineRun } from '../services/cicd';
+import { getSecurityOverviewData } from '../services/security';
 import { io } from '../server';
 
 export const clusterRouter = Router();
+
+// GET /api/cluster/security
+clusterRouter.get('/security', async (req, res) => {
+  try {
+    const data = await getSecurityOverviewData();
+    res.json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to fetch security audit data' });
+  }
+});
 
 // GET /api/cluster/overview
 clusterRouter.get('/overview', async (req, res) => {

@@ -40,6 +40,12 @@ const NAV_GROUPS: NavGroup[] = [
       { label: 'CI/CD Pipeline', icon: 'ri-git-merge-line',   to: '/cicd'          },
     ],
   },
+  {
+    title: 'SECURITY & COMPLIANCE',
+    items: [
+      { label: 'Security Audit', icon: 'ri-shield-check-line', to: '/security'     },
+    ],
+  },
 ]
 
 export default function Sidebar() {
