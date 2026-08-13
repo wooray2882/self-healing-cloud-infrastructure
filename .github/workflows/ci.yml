@@ -9,7 +9,7 @@ jobs:
     name: Lint & Test Application
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -39,7 +39,7 @@ jobs:
     name: Terraform Security Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -58,7 +58,7 @@ jobs:
     name: Container Security Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       
       - name: Build Frontend Image
         run: docker build -t healops-frontend:test ./app/frontend
