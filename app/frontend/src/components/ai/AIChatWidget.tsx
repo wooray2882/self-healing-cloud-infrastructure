@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { io } from 'socket.io-client'
 
 interface Message {
   id: string
@@ -6,6 +7,8 @@ interface Message {
   content: string
   timestamp: string
 }
+
+const socket = io('http://localhost:4000')
 
 export default function AIChatWidget() {
   const [isOpen, setIsOpen] = useState(false)
@@ -28,6 +31,25 @@ export default function AIChatWidget() {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages, isOpen])
+
+  // Listen for WebSockets from the backend!
+  useEffect(() => {
+    socket.on('remediation_event', (data: { timestamp: string, message: string }) => {
+      // Auto-open the chat widget if it's closed so the user sees the alert!
+      setIsOpen(true);
+      
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `🚨 ALERT INCOMING 🚨\n\n${data.message}`,
+        timestamp: new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }]);
+    });
+
+    return () => {
+      socket.off('remediation_event');
+    };
+  }, []);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault()

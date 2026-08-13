@@ -1,10 +1,53 @@
+import React, { useState } from 'react'
+import { Activity, Server, Cpu, ShieldAlert, Zap, Bell, AlertTriangle } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { clusterKPIs, cpuMemoryHistory, podsAtRisk, recentAlerts, healingEvents } from '../data/mockData'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import SubscriptionModal from '../components/SubscriptionModal'
 
 export default function OverviewPage() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isInjecting, setIsInjecting] = useState(false);
+
+  const handleInjectChaos = async () => {
+    setIsInjecting(true);
+    try {
+      await fetch('http://localhost:4000/api/chaos/inject', { method: 'POST' });
+      setTimeout(() => setIsInjecting(false), 3000);
+    } catch (error) {
+      console.error(error);
+      setIsInjecting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Top row: KPIs */}
+      <SubscriptionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+
+      {/* Header with Action Buttons */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-white">Cluster Overview</h1>
+          <p className="text-gray-400 mt-1">Real-time health and AI remediation metrics</p>
+        </div>
+        <div className="flex gap-4">
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 font-medium text-cyan-400 transition-colors bg-cyan-500/10 border border-cyan-500/20 rounded-xl hover:bg-cyan-500/20"
+          >
+            <Bell className="w-4 h-4" /> Subscribe to Alerts
+          </button>
+          
+          <button 
+            onClick={handleInjectChaos}
+            disabled={isInjecting}
+            className="flex items-center gap-2 px-4 py-2 font-medium text-white transition-all bg-red-500/80 border border-red-500 rounded-xl hover:bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] disabled:opacity-50"
+          >
+            <AlertTriangle className={`w-4 h-4 ${isInjecting ? 'animate-pulse' : ''}`} /> 
+            {isInjecting ? 'Injecting Chaos...' : 'Inject Chaos (Test AI)'}
+          </button>
+        </div>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <KPICard title="Cluster Health" data={clusterKPIs.health} />
         <KPICard title="Active Nodes" data={clusterKPIs.activeNodes} />
