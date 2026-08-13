@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+/* =========================================================
+   HealOps Design System
+   Dark navy theme inspired by RevenuePulse AI reference.
+   Primary: Cyan (#06D6F0) | Secondary: Purple (#8B5CF6)
+   ========================================================= */
+
+@theme {
+  /* --- Color Palette --- */
+  --color-bg-base:       #0D0F1A;
+  --color-bg-sidebar:    #0F1122;
+  --color-bg-card:       #141628;
+  --color-bg-card-hover: #1A1D35;
+  --color-bg-input:      #1E2140;
+  --color-border:        #1E2344;
+  --color-border-subtle: #252848;
+
+  /* Accent: Cyan */
+  --color-cyan-400:  #22D3EE;
+  --color-cyan-500:  #06D6F0;
+  --color-cyan-600:  #0891B2;
+
+  /* Accent: Purple */
+  --color-purple-400: #A78BFA;
+  --color-purple-500: #8B5CF6;
+  --color-purple-600: #7C3AED;
+
+  /* Accent: Green (healthy state) */
+  --color-green-400:  #34D399;
+  --color-green-500:  #10B981;
+
+  /* Accent: Amber (warning state) */
+  --color-amber-400:  #FBBF24;
+  --color-amber-500:  #F59E0B;
+
+  /* Accent: Red (critical state) */
+  --color-red-400:    #F87171;
+  --color-red-500:    #EF4444;
+
+  /* Text */
+  --color-text-primary:   #F9FAFB;
+  --color-text-secondary: #9CA3AF;
+  --color-text-muted:     #6B7280;
+
+  /* --- Typography --- */
+  --font-sans: 'Inter', 'system-ui', sans-serif;
+
+  /* --- Border Radius --- */
+  --radius-card: 0.75rem;
+  --radius-sm:   0.375rem;
+}
+
+/* =========================================================
+   Base Styles
+   ========================================================= */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* =========================================================
+   Scrollbar Styling
+   ========================================================= */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--color-bg-base); }
+::-webkit-scrollbar-thumb { background: var(--color-border-subtle); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
+
+/* =========================================================
+   Utility: Card base
+   ========================================================= */
+.card {
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 1.25rem;
+}
+
+/* =========================================================
+   Utility: Status badge colors
+   ========================================================= */
+.badge-healthy  { background: rgba(16, 185, 129, 0.15); color: #34D399; }
+.badge-warning  { background: rgba(245, 158, 11, 0.15); color: #FBBF24; }
+.badge-critical { background: rgba(239,  68,  68, 0.15); color: #F87171; }
+.badge-info     { background: rgba(6,  214, 240, 0.15);  color: #22D3EE; }
+
+/* =========================================================
+   Utility: Glow accents
+   ========================================================= */
+.glow-cyan   { box-shadow: 0 0 20px rgba(6, 214, 240, 0.15); }
+.glow-purple { box-shadow: 0 0 20px rgba(139, 92, 246, 0.15); }
+
+/* =========================================================
+   Utility: Gradient text
+   ========================================================= */
+.gradient-text {
+  background: linear-gradient(135deg, #06D6F0, #8B5CF6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* =========================================================
+   Utility: Sidebar nav item
+   ========================================================= */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.nav-item:hover {
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+}
+.nav-item.active {
+  background: rgba(6, 214, 240, 0.1);
+  color: var(--color-cyan-500);
+}
+
+/* =========================================================
+   Utility: Live indicator pulse
+   ========================================================= */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+.live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10B981;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* =========================================================
+   Utility: Gradient chart fills
+   ========================================================= */
+.chart-gradient-cyan   { fill: url(#grad-cyan); }
+.chart-gradient-purple { fill: url(#grad-purple); }
