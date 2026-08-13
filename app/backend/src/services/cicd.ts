@@ -1,10 +1,13 @@
 export interface PipelineStage {
   id: string;
   name: string;
-  category: 'source' | 'test' | 'security' | 'build' | 'deploy';
+  shortLabel: string;
+  category: 'dev' | 'ops';
+  phase: string;
   status: 'success' | 'running' | 'queued' | 'failed';
   duration: string;
   description: string;
+  command: string;
   logs: string[];
 }
 
@@ -43,92 +46,153 @@ export interface CICDData {
   history: PipelineRun[];
 }
 
-const defaultStages: PipelineStage[] = [
+const detailedStages: PipelineStage[] = [
   {
     id: 'stage-1',
-    name: 'Source & Git Checkout',
-    category: 'source',
+    name: 'Commit Change',
+    shortLabel: 'Commit',
+    category: 'dev',
+    phase: 'Source Control',
     status: 'success',
-    duration: '2s',
-    description: 'Fetch commit refs and configure AWS OIDC authentication token',
+    duration: '1s',
+    description: 'Code pushed to GitHub feature branch with Conventional Commit formatting',
+    command: 'git push origin feat/cicd-pipeline-page',
     logs: [
       '[00:00:01] ➔ actions/checkout@v4: Fetching repository wooray2882/self-healing-cloud-infrastructure',
-      '[00:00:01] ➔ HEAD is now at 6a496a9 (feat/cicd-pipeline-page)',
-      '[00:00:02] ➔ aws-actions/configure-aws-credentials@v4: Assuming role arn:aws:iam::000622214837:role/healops-dev-github-actions-role',
-      '[00:00:02] ✓ OIDC web identity token exchanged successfully with AWS STS (us-east-1)'
+      '[00:00:01] ➔ HEAD is now at dd33e34 (feat(cicd): implement CI/CD pipeline page)',
+      '[00:00:01] ➔ Commit verified with GPG signature by author: Ray Woo <raywoo@github>',
+      '[00:00:01] ✓ Verified clean working tree against remote origin'
     ]
   },
   {
     id: 'stage-2',
-    name: 'Lint & Typecheck',
-    category: 'test',
+    name: 'AWS OIDC Auth',
+    shortLabel: 'OIDC Auth',
+    category: 'dev',
+    phase: 'Security Identity',
     status: 'success',
-    duration: '6s',
-    description: 'Strict TypeScript compilation and lint verification on Node 22',
+    duration: '2s',
+    description: 'Passwordless AWS STS AssumeRoleWithWebIdentity via GitHub OIDC token',
+    command: 'aws-actions/configure-aws-credentials@v4',
     logs: [
-      '[00:00:02] ➔ npm ci in ./app/backend and ./app/frontend',
-      '[00:00:04] ➔ tsc -b: Validating strict null checks and module boundaries',
-      '[00:00:06] ➔ vite build: Validating React bundling & tree shaking',
-      '[00:00:08] ✓ Typecheck passed with 0 errors across 2,820 modules'
+      '[00:00:01] ➔ Requesting JWT Web Identity Token from GitHub Actions token provider...',
+      '[00:00:02] ➔ Exchanging JWT with AWS Security Token Service (STS) in us-east-1...',
+      '[00:00:02] ➔ Assumed IAM Role: arn:aws:iam::000622214837:role/healops-dev-github-actions-role',
+      '[00:00:02] ✓ Temporary STS credentials generated. Expiration: 1 hour (Zero hardcoded secrets)'
     ]
   },
   {
     id: 'stage-3',
-    name: 'Trivy DevSecOps Scan',
-    category: 'security',
+    name: 'Lint & Compile',
+    shortLabel: 'Compile',
+    category: 'dev',
+    phase: 'Build Integration',
     status: 'success',
-    duration: '8s',
-    description: 'AquaSecurity Trivy container image vulnerability and CVE scanner',
+    duration: '5s',
+    description: 'Strict TypeScript compilation and Vite asset bundling on Node 22',
+    command: 'npm run build (tsc -b && vite build)',
     logs: [
-      '[00:00:08] ➔ aquasecurity/trivy-action: Initializing CVE vulnerability database',
-      '[00:00:10] ➔ Scanning image healops-backend:test (OS: alpine 3.21, Library: nodejs)',
-      '[00:00:13] ➔ Scanning image healops-frontend:test (OS: alpine 3.21, Library: nginx)',
-      '[00:00:16] ✓ Trivy audit complete: 0 CRITICAL, 0 HIGH, 0 MEDIUM vulnerabilities. Status: PASSED'
+      '[00:00:02] ➔ Setting up Node.js v22.14.0 (Alpine runtime environment)',
+      '[00:00:03] ➔ Running tsc -b across app/backend and app/frontend',
+      '[00:00:05] ➔ Transforming and minifying 2,821 modules with Vite 8',
+      '[00:00:07] ✓ TypeScript compilation passed with 0 warnings, 0 syntax errors'
     ]
   },
   {
     id: 'stage-4',
-    name: 'Docker Build & ECR Push',
-    category: 'build',
+    name: 'Trivy Security Scan',
+    shortLabel: 'Trivy Scan',
+    category: 'dev',
+    phase: 'DevSecOps Audit',
     status: 'success',
-    duration: '21s',
-    description: 'Multi-stage Docker builds tagged with git SHA and latest pushed to ECR',
+    duration: '7s',
+    description: 'AquaSecurity Trivy container image CVE and package vulnerability scanner',
+    command: 'aquasecurity/trivy-action@master',
     logs: [
-      '[00:00:16] ➔ aws-actions/amazon-ecr-login@v2: Authenticated to 000622214837.dkr.ecr.us-east-1.amazonaws.com',
-      '[00:00:18] ➔ docker build -t healops-backend-dev:latest ./app/backend',
-      '[00:00:25] ➔ docker build -t healops-frontend-dev:latest ./app/frontend',
-      '[00:00:32] ➔ docker push 000622214837.dkr.ecr.us-east-1.amazonaws.com/healops-backend-dev:latest',
-      '[00:00:37] ✓ Pushed 2 container artifacts to Amazon ECR (us-east-1)'
+      '[00:00:07] ➔ aquasecurity/trivy-action: Downloading latest National Vulnerability Database (NVD)...',
+      '[00:00:09] ➔ Scanning OS dependencies on alpine:3.21.3 base layer...',
+      '[00:00:12] ➔ Scanning Node.js npm dependency lockfiles for known CVEs...',
+      '[00:00:14] ✓ Trivy audit complete: 0 CRITICAL, 0 HIGH, 0 MEDIUM. Status: PASSED (CIS Clean)'
     ]
   },
   {
     id: 'stage-5',
-    name: 'Zero-Downtime EKS Rollout',
-    category: 'deploy',
+    name: 'Docker Build',
+    shortLabel: 'Package',
+    category: 'ops',
+    phase: 'Container Packaging',
     status: 'success',
-    duration: '12s',
-    description: 'Kubernetes rolling update with readiness probes and surge protection',
+    duration: '14s',
+    description: 'Multi-stage Docker builds for backend API and frontend Nginx distribution',
+    command: 'docker build -t healops-backend:latest -t healops-frontend:latest .',
+    logs: [
+      '[00:00:14] ➔ [1/2] Building healops-backend:latest (node:22-alpine base, dist/server.js)',
+      '[00:00:20] ➔ Backend container built successfully (Layer size: 48.2 MB)',
+      '[00:00:21] ➔ [2/2] Building healops-frontend:latest (nginx:alpine multi-stage static asset host)',
+      '[00:00:28] ✓ Frontend container built successfully (Layer size: 24.1 MB)'
+    ]
+  },
+  {
+    id: 'stage-6',
+    name: 'ECR Delivery',
+    shortLabel: 'ECR Push',
+    category: 'ops',
+    phase: 'Artifact Registry',
+    status: 'success',
+    duration: '9s',
+    description: 'Push cryptographically tagged image artifacts to Amazon ECR private repository',
+    command: 'docker push 000622214837.dkr.ecr.us-east-1.amazonaws.com/...',
+    logs: [
+      '[00:00:28] ➔ Logging in to Amazon ECR registry 000622214837.dkr.ecr.us-east-1.amazonaws.com...',
+      '[00:00:31] ➔ Pushing healops-backend:dd33e34 and healops-backend:latest',
+      '[00:00:34] ➔ Pushing healops-frontend:dd33e34 and healops-frontend:latest',
+      '[00:00:37] ✓ 2 container manifests successfully registered in AWS ECR repository'
+    ]
+  },
+  {
+    id: 'stage-7',
+    name: 'EKS Rollout',
+    shortLabel: 'Deploy',
+    category: 'ops',
+    phase: 'Production Deployment',
+    status: 'success',
+    duration: '11s',
+    description: 'Zero-downtime Kubernetes rolling update with HTTP readiness probe verification',
+    command: 'kubectl rollout restart deployment/healops-backend deployment/healops-frontend',
     logs: [
       '[00:00:37] ➔ kubectl rollout restart deployment/healops-backend deployment/healops-frontend -n default',
-      '[00:00:41] ➔ Waiting for pods: 2 old replicas pending termination...',
-      '[00:00:47] ➔ Readiness probes verified 2/2 containers passing HTTP 200 health checks',
-      '[00:00:49] ✓ Deployment healops-backend & healops-frontend successfully rolled out on EKS!'
+      '[00:00:40] ➔ Provisioning new pod replicas across EC2 worker nodes (us-east-1a, us-east-1b)...',
+      '[00:00:45] ➔ HTTP 200 health probe check passed on /health endpoint for 2/2 replicas',
+      '[00:00:48] ➔ Terminating old container replicas gracefully after route convergence',
+      '[00:00:49] ✓ Zero-downtime rollout completed successfully on Amazon EKS!'
     ]
   }
 ];
 
 export const inMemoryRuns: PipelineRun[] = [
   {
-    id: 'run-1042',
+    id: 'run-1043',
     workflowName: 'Deploy to ECR & EKS',
+    commitSha: 'dd33e34',
+    commitMessage: 'feat(cicd): implement CI/CD pipeline page with visual DAG, DORA metrics, and terminal logs',
+    author: 'wooray2882',
+    branch: 'feat/cicd-pipeline-page',
+    status: 'success',
+    duration: '49s',
+    timestamp: 'Just now',
+    stages: detailedStages
+  },
+  {
+    id: 'run-1042',
+    workflowName: 'Deploy to ECR',
     commitSha: '6a496a9',
     commitMessage: 'feat(dashboard): implement live telemetry and all 7 dedicated dashboard pages',
     author: 'wooray2882',
     branch: 'feat/multi-page-dashboard',
     status: 'success',
-    duration: '49s',
-    timestamp: 'Just now',
-    stages: defaultStages
+    duration: '51s',
+    timestamp: '45m ago',
+    stages: detailedStages
   },
   {
     id: 'run-1041',
@@ -140,7 +204,7 @@ export const inMemoryRuns: PipelineRun[] = [
     status: 'success',
     duration: '44s',
     timestamp: '5h ago',
-    stages: defaultStages
+    stages: detailedStages
   },
   {
     id: 'run-1040',
@@ -152,19 +216,7 @@ export const inMemoryRuns: PipelineRun[] = [
     status: 'success',
     duration: '45s',
     timestamp: '6h ago',
-    stages: defaultStages
-  },
-  {
-    id: 'run-1039',
-    workflowName: 'Continuous Integration (CI)',
-    commitSha: 'd9b32fa',
-    commitMessage: 'feat(k8s): add Prometheus and Alertmanager monitoring manifests',
-    author: 'wooray2882',
-    branch: 'main',
-    status: 'success',
-    duration: '1m 12s',
-    timestamp: '1d ago',
-    stages: defaultStages
+    stages: detailedStages
   }
 ];
 
@@ -188,19 +240,20 @@ export async function getCICDPipelineData(): Promise<CICDData> {
   };
 }
 
-export function triggerNewPipelineRun(branch = 'feat/cicd-pipeline-page', message = 'feat(cicd): update visual pipeline workflow'): PipelineRun {
+export function triggerNewPipelineRun(branch = 'feat/cicd-pipeline-page', message = 'feat(cicd): automated zero-downtime deployment rollout'): PipelineRun {
   const newRun: PipelineRun = {
-    id: `run-${1043 + inMemoryRuns.length}`,
+    id: `run-${1044 + inMemoryRuns.length}`,
     workflowName: 'Deploy to ECR & EKS',
     commitSha: Math.random().toString(16).substring(2, 9),
     commitMessage: message,
     author: 'wooray2882',
     branch,
     status: 'success',
-    duration: '48s',
+    duration: '49s',
     timestamp: 'Just now',
-    stages: defaultStages
+    stages: detailedStages
   };
   inMemoryRuns.unshift(newRun);
   return newRun;
 }
+
