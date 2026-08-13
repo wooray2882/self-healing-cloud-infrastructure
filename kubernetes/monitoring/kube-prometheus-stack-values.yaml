@@ -1,0 +1,27 @@
+# Values file for the kube-prometheus-stack Helm chart
+# Helm Install Command: 
+# helm upgrade --install prometheus prometheus-community/kube-prometheus-stack -n monitoring -f kube-prometheus-stack-values.yaml
+
+# 1. Disable Grafana since we are using our custom React dashboard
+grafana:
+  enabled: false
+
+# 2. Configure Prometheus to load our custom rules
+prometheus:
+  prometheusSpec:
+    ruleSelectorNilUsesHelmValues: false
+    ruleSelector:
+      matchLabels:
+        role: alert-rules
+        prometheus: healops
+    # Scrape configuration for our specific applications
+    additionalScrapeConfigs:
+      - job_name: 'healops-backend'
+        metrics_path: '/metrics'
+        static_configs:
+          - targets: ['healops-backend-svc.default.svc.cluster.local:80']
+
+# 3. Configure Alertmanager to use our custom Secret configuration
+alertmanager:
+  alertmanagerSpec:
+    configSecret: alertmanager-config

@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+type: Opaque
+stringData:
+  alertmanager.yaml: |
+    global:
+      resolve_timeout: 5m
+      # Normally we'd put the Slack webhook URL here securely
+      slack_api_url: 'https://example.com/slack-webhook-placeholder'
+
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'dual-receiver'
+      
+      # Route all critical/warning alerts to the dual receiver
+      routes:
+        - match_re:
+            severity: ^(critical|warning)$
+          receiver: 'dual-receiver'
+
+    receivers:
+      - name: 'dual-receiver'
+        
+        # 1. THE MACHINE ROUTE (Self-Healing Triggers)
+        # Sends a JSON payload to our Node.js backend
+        webhook_configs:
+          - url: 'http://healops-backend-svc.default.svc.cluster.local:80/api/webhook/alert'
+            send_resolved: true
+            
+        # 2. THE HUMAN ROUTE (Visibility)
+        # Sends a formatted message to the engineering Slack channel
+        slack_configs:
+          - channel: '#healops-alerts'
+            send_resolved: true
+            title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+            text: >-
+              *Description:* {{ (index .Alerts 0).Annotations.description }}
+              *Severity:* {{ (index .Alerts 0).Labels.severity }}
+              *Pod:* {{ (index .Alerts 0).Labels.pod }}
