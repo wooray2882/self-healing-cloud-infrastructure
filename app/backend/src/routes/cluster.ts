@@ -8,6 +8,7 @@ import {
   inMemoryHealingEvents 
 } from '../services/kubernetes';
 import { getLiveMetrics, getLiveAlerts } from '../services/prometheus';
+import { getCICDPipelineData, triggerNewPipelineRun } from '../services/cicd';
 import { io } from '../server';
 
 export const clusterRouter = Router();
@@ -59,6 +60,32 @@ clusterRouter.get('/alerts', async (req, res) => {
     res.json({ alerts, count: alerts.length });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to fetch alerts' });
+  }
+});
+
+// GET /api/cluster/cicd
+clusterRouter.get('/cicd', async (req, res) => {
+  try {
+    const data = await getCICDPipelineData();
+    res.json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to fetch CI/CD data' });
+  }
+});
+
+// POST /api/cluster/cicd/trigger
+clusterRouter.post('/cicd/trigger', async (req, res) => {
+  const { branch, message } = req.body;
+  try {
+    const newRun = triggerNewPipelineRun(branch, message);
+    io.emit('healing-event', {
+      type: 'CICD_PIPELINE_TRIGGERED',
+      message: `Triggered CI/CD Pipeline build ${newRun.id} on ${newRun.branch}`,
+      timestamp: new Date().toISOString()
+    });
+    res.json({ success: true, run: newRun });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -114,3 +141,4 @@ clusterRouter.post('/node/cordon', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+

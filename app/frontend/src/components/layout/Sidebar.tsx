@@ -34,6 +34,12 @@ const NAV_GROUPS: NavGroup[] = [
       { label: 'Chaos',         icon: 'ri-flashlight-line',   to: '/chaos'         },
     ],
   },
+  {
+    title: 'GITOPS & DELIVERY',
+    items: [
+      { label: 'CI/CD Pipeline', icon: 'ri-git-merge-line',   to: '/cicd'          },
+    ],
+  },
 ]
 
 export default function Sidebar() {

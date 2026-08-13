@@ -7,6 +7,7 @@ import MetricsPage from './pages/MetricsPage'
 import AlertsPage from './pages/AlertsPage'
 import SelfHealingPage from './pages/SelfHealingPage'
 import ChaosPage from './pages/ChaosPage'
+import CICDPage from './pages/CICDPage'
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/alerts" element={<AlertsPage />} />
         <Route path="/self-healing" element={<SelfHealingPage />} />
         <Route path="/chaos" element={<ChaosPage />} />
+        <Route path="/cicd" element={<CICDPage />} />
       </Routes>
     </Layout>
   )
