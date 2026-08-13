@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { analyzeAlertAndDecideAction } from '../services/bedrock';
 import { executeRemediation } from '../services/kubernetes';
 import { sendNotification } from '../services/sns';
+import { io } from '../server';
 
 export const webhookRouter = Router();
 
@@ -23,13 +24,20 @@ webhookRouter.post('/alert', async (req: Request, res: Response) => {
     
     console.log('AI Decision:', aiDecision);
 
+    // Emit event to Frontend via WebSocket so the UI updates instantly!
+    io.emit('remediation_event', {
+      timestamp: new Date().toISOString(),
+      message: aiDecision.human_message,
+      type: 'remediation'
+    });
+
     // 2. Safely execute the machine action via Kubernetes SDK
-    // In a real app, we would parse the exact target from the alert, but we'll hardcode 'healops-backend' for the demo
     const remediationResult = await executeRemediation(aiDecision.machine_action, 'healops-backend');
     console.log('Remediation Result:', remediationResult);
 
     // 3. Send the human message via AWS SNS to alert the engineering team
     await sendNotification(aiDecision.human_message);
+
     
     // We would also save this to a database (like DynamoDB or Firestore) so the React UI can fetch it,
     // or emit it via WebSockets for real-time UI updates!

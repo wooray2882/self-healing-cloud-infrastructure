@@ -19,10 +19,30 @@ app.get('/health', (req, res) => {
 import { webhookRouter } from './routes/webhook';
 import { subscribeRouter } from './routes/subscribe';
 
+import { chaosRouter } from './routes/chaos';
+
 // Register Routes
 app.use('/api/webhook', webhookRouter);
 app.use('/api/subscribe', subscribeRouter);
+app.use('/api/chaos', chaosRouter);
 
-app.listen(PORT, () => {
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+
+const httpServer = createServer(app);
+
+// Initialize Socket.io and allow CORS from the React frontend
+export const io = new Server(httpServer, {
+  cors: {
+    origin: "*", // In production, restrict this to the frontend URL
+    methods: ["GET", "POST"]
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log('Frontend connected to WebSockets:', socket.id);
+});
+
+httpServer.listen(PORT, () => {
   console.log(`HealOps Backend API is running on port ${PORT}`)
 })
