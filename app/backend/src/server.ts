@@ -15,7 +15,13 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() })
 })
 
-// Future routing will go here (e.g., K8s API proxy, Bedrock Agent integration)
+// Import Routes
+import { webhookRouter } from './routes/webhook';
+import { subscribeRouter } from './routes/subscribe';
+
+// Register Routes
+app.use('/api/webhook', webhookRouter);
+app.use('/api/subscribe', subscribeRouter);
 
 app.listen(PORT, () => {
   console.log(`HealOps Backend API is running on port ${PORT}`)
