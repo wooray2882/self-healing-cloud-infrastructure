@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Bell, AlertTriangle } from 'lucide-react'
 import { clusterKPIs, cpuMemoryHistory, podsAtRisk, recentAlerts, healingEvents } from '../data/mockData'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
