@@ -6,6 +6,10 @@ echo "========================================="
 echo " Starting HealOps Portfolio Project"
 echo "========================================="
 
+echo "Cleaning up old processes..."
+lsof -ti:4000 | xargs kill -9 2>/dev/null || true
+lsof -ti:5173 | xargs kill -9 2>/dev/null || true
+
 # Start the Node.js Backend in the background
 echo "[1/2] Starting Node.js Backend (Port 4000)..."
 cd app/backend
