@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
-import { Activity, Server, Cpu, ShieldAlert, Zap, Bell, AlertTriangle } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { Bell, AlertTriangle } from 'lucide-react'
 import { clusterKPIs, cpuMemoryHistory, podsAtRisk, recentAlerts, healingEvents } from '../data/mockData'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import SubscriptionModal from '../components/SubscriptionModal'

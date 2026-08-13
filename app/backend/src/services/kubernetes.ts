@@ -31,26 +31,25 @@ export async function executeRemediation(action: string, targetApp: string): Pro
 
 async function restartPodsByLabel(appLabel: string): Promise<string> {
   // Find all pods matching the label
-  const res = await k8sApi.listNamespacedPod('default', undefined, undefined, undefined, undefined, `app=${appLabel}`);
+  const res = await k8sApi.listNamespacedPod({ namespace: 'default', labelSelector: `app=${appLabel}` });
   
-  if (res.body.items.length === 0) {
+  if (res.items.length === 0) {
     return `No pods found with label app=${appLabel} to restart.`;
   }
 
   // Delete the pods to force a restart
-  for (const pod of res.body.items) {
+  for (const pod of res.items) {
     if (pod.metadata?.name) {
-      await k8sApi.deleteNamespacedPod(pod.metadata.name, 'default');
+      await k8sApi.deleteNamespacedPod({ name: pod.metadata.name, namespace: 'default' });
       console.log(`Deleted pod ${pod.metadata.name} to force restart.`);
     }
   }
-  return `Successfully restarted ${res.body.items.length} pods for ${appLabel}.`;
+  return `Successfully restarted ${res.items.length} pods for ${appLabel}.`;
 }
 
 async function scaleDeployment(appLabel: string, increment: number): Promise<string> {
   // Note: HPA usually handles scaling, but this allows AI to force a scale up if HPA is failing
-  const res = await k8sAppsApi.readNamespacedDeployment(appLabel, 'default');
-  const deployment = res.body;
+  const deployment = await k8sAppsApi.readNamespacedDeployment({ name: appLabel, namespace: 'default' });
   
   if (!deployment.spec) throw new Error('Deployment spec not found');
   
@@ -59,6 +58,6 @@ async function scaleDeployment(appLabel: string, increment: number): Promise<str
   
   deployment.spec.replicas = newReplicas;
   
-  await k8sAppsApi.replaceNamespacedDeployment(appLabel, 'default', deployment);
+  await k8sAppsApi.replaceNamespacedDeployment({ name: appLabel, namespace: 'default', body: deployment });
   return `Scaled deployment ${appLabel} from ${currentReplicas} to ${newReplicas}.`;
 }

@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-bedrock-agent-runtime": "^3.1109.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1109.0",
     "@aws-sdk/client-sns": "^3.1109.0",
     "@kubernetes/client-node": "^2.0.0",
     "cors": "^2.8.6",
