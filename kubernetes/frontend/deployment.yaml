@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healops-frontend
+  namespace: default
+  labels:
+    app: healops-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: healops-frontend
+  template:
+    metadata:
+      labels:
+        app: healops-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: healops-frontend-dev:latest # Replace with real ECR URI in CI/CD
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          
+          # Nginx is very lightweight
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
