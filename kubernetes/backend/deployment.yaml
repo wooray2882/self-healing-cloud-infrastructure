@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healops-backend
+  namespace: default
+  labels:
+    app: healops-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: healops-backend
+  template:
+    metadata:
+      labels:
+        app: healops-backend
+    spec:
+      serviceAccountName: healops-backend-sa
+      containers:
+        - name: backend
+          image: healops-backend-dev:latest # Replace with real ECR URI in CI/CD
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 4000
+          
+          # Self-Healing Layer 1: Resource Limits
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+
+          # Self-Healing Layer 2: Liveness and Readiness Probes
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3 # Kubernetes will kill and restart the pod if it fails 3 times
+            
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "4000"
