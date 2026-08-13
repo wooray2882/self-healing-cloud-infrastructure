@@ -71,23 +71,49 @@ resource "aws_iam_role_policy_attachment" "attach_ops" {
   policy_arn = aws_iam_policy.ops_access.arn
 }
 
-# GitHub OIDC Provider (Allows GitHub Actions to assume roles)
-module "iam_github_oidc_provider" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-github-oidc-provider"
-  version = "~> 5.30"
+# GitHub OIDC Provider (Allows GitHub Actions to authenticate)
+data "aws_iam_openid_connect_provider" "github" {
+  arn = "arn:aws:iam::000622214837:oidc-provider/token.actions.githubusercontent.com"
 }
 
-# GitHub Actions Role (Allowed to push to ECR)
-module "iam_github_oidc_role" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-github-oidc-role"
-  version = "~> 5.30"
-
+# GitHub Actions Role (Allowed to push to ECR and deploy to EKS)
+resource "aws_iam_role" "github_actions" {
   name = "healops-${var.environment}-github-actions-role"
-  
-  subjects = ["repo:wooray2882/self-healing-cloud-infrastructure:*"]
 
-  policies = {
-    ECR_PowerUser = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
-    EKS_Access    = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = data.aws_iam_openid_connect_provider.github.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          }
+          StringLike = {
+            "token.actions.githubusercontent.com:sub" = "repo:wooray2882*/self-healing-cloud-infrastructure*:*"
+          }
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Environment = var.environment
+    Project     = "HealOps"
   }
 }
+
+resource "aws_iam_role_policy_attachment" "github_actions_ecr" {
+  role       = aws_iam_role.github_actions.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
+}
+
+resource "aws_iam_role_policy_attachment" "github_actions_eks" {
+  role       = aws_iam_role.github_actions.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+}
+
