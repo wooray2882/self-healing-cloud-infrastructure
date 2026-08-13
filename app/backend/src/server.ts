@@ -18,13 +18,15 @@ app.get('/health', (req, res) => {
 // Import Routes
 import { webhookRouter } from './routes/webhook';
 import { subscribeRouter } from './routes/subscribe';
-
 import { chaosRouter } from './routes/chaos';
+import { clusterRouter } from './routes/cluster';
 
 // Register Routes
 app.use('/api/webhook', webhookRouter);
 app.use('/api/subscribe', subscribeRouter);
 app.use('/api/chaos', chaosRouter);
+app.use('/api/cluster', clusterRouter);
+
 
 import { createServer } from 'http';
 import { Server } from 'socket.io';
