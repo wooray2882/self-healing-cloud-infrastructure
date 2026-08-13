@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feat/aws-deployment
+      - 'feat/**'
   workflow_dispatch:
 
 env:
