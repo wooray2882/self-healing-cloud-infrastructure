@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: healops-frontend-dev:latest # Replace with real ECR URI in CI/CD
+          image: 000622214837.dkr.ecr.us-east-1.amazonaws.com/healops-frontend-dev:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80

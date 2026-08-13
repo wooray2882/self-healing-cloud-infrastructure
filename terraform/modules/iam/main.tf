@@ -70,3 +70,24 @@ resource "aws_iam_role_policy_attachment" "attach_ops" {
   role       = module.iam_eks_role.iam_role_name
   policy_arn = aws_iam_policy.ops_access.arn
 }
+
+# GitHub OIDC Provider (Allows GitHub Actions to assume roles)
+module "iam_github_oidc_provider" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-github-oidc-provider"
+  version = "~> 5.30"
+}
+
+# GitHub Actions Role (Allowed to push to ECR)
+module "iam_github_oidc_role" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-github-oidc-role"
+  version = "~> 5.30"
+
+  name = "healops-${var.environment}-github-actions-role"
+  
+  subjects = ["repo:wooray2882/self-healing-cloud-infrastructure:*"]
+
+  policies = {
+    ECR_PowerUser = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
+    EKS_Access    = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+  }
+}

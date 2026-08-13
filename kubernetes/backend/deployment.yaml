@@ -18,7 +18,7 @@ spec:
       serviceAccountName: healops-backend-sa
       containers:
         - name: backend
-          image: healops-backend-dev:latest # Replace with real ECR URI in CI/CD
+          image: 000622214837.dkr.ecr.us-east-1.amazonaws.com/healops-backend-dev:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 4000

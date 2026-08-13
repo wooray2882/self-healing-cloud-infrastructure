@@ -1,0 +1,58 @@
+name: Deploy to ECR
+
+on:
+  push:
+    branches:
+      - main
+      - feat/aws-deployment
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ROLE_ARN: arn:aws:iam::000622214837:role/healops-dev-github-actions-role
+  ECR_REGISTRY: 000622214837.dkr.ecr.us-east-1.amazonaws.com
+
+permissions:
+  id-token: write # Required for AWS OIDC authentication
+  contents: read
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push Backend Image
+        working-directory: ./app/backend
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          REPOSITORY=healops-backend-dev
+          docker build -t $REPOSITORY:$IMAGE_TAG -t $REPOSITORY:latest .
+          docker tag $REPOSITORY:$IMAGE_TAG ${{ env.ECR_REGISTRY }}/$REPOSITORY:$IMAGE_TAG
+          docker tag $REPOSITORY:latest ${{ env.ECR_REGISTRY }}/$REPOSITORY:latest
+          docker push ${{ env.ECR_REGISTRY }}/$REPOSITORY:$IMAGE_TAG
+          docker push ${{ env.ECR_REGISTRY }}/$REPOSITORY:latest
+
+      - name: Build, tag, and push Frontend Image
+        working-directory: ./app/frontend
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          REPOSITORY=healops-frontend-dev
+          docker build -t $REPOSITORY:$IMAGE_TAG -t $REPOSITORY:latest .
+          docker tag $REPOSITORY:$IMAGE_TAG ${{ env.ECR_REGISTRY }}/$REPOSITORY:$IMAGE_TAG
+          docker tag $REPOSITORY:latest ${{ env.ECR_REGISTRY }}/$REPOSITORY:latest
+          docker push ${{ env.ECR_REGISTRY }}/$REPOSITORY:$IMAGE_TAG
+          docker push ${{ env.ECR_REGISTRY }}/$REPOSITORY:latest
