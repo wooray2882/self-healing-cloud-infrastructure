@@ -100,8 +100,15 @@ resource "aws_iam_role_policy_attachment" "attach_sns" {
 
 
 # GitHub OIDC Provider (Allows GitHub Actions to authenticate)
-data "aws_iam_openid_connect_provider" "github" {
-  arn = "arn:aws:iam::000622214837:oidc-provider/token.actions.githubusercontent.com"
+resource "aws_iam_openid_connect_provider" "github" {
+  url             = "https://token.actions.githubusercontent.com"
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1", "1c5878692eee742154649f381a617fbc4803e1dd"]
+
+  tags = {
+    Environment = var.environment
+    Project     = "HealOps"
+  }
 }
 
 # GitHub Actions Role (Allowed to push to ECR and deploy to EKS)
@@ -114,7 +121,7 @@ resource "aws_iam_role" "github_actions" {
       {
         Effect = "Allow"
         Principal = {
-          Federated = data.aws_iam_openid_connect_provider.github.arn
+          Federated = aws_iam_openid_connect_provider.github.arn
         }
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
