@@ -84,6 +84,18 @@ export default function Topbar({ title }: TopbarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Auto-launch Alert Subscription Onboarding modal on first load
+  useEffect(() => {
+    const hasShown = sessionStorage.getItem('healops_onboarding_shown');
+    if (!hasShown) {
+      sessionStorage.setItem('healops_onboarding_shown', 'true');
+      const timer = setTimeout(() => {
+        setIsSubModalOpen(true);
+      }, 750);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   const handleNotificationClick = (item: NotificationItem) => {
     setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, unread: false } : n));
     setIsNotifOpen(false);
