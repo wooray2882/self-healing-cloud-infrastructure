@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { 
-  Bell, 
   AlertTriangle, 
   Server, 
   Layers, 
@@ -25,7 +24,6 @@ import {
   PolarRadiusAxis,
   Radar
 } from 'recharts';
-import SubscriptionModal from '../components/SubscriptionModal';
 import { fetchApi } from '../api/client';
 
 interface OverviewData {
@@ -46,7 +44,6 @@ interface OverviewData {
 
 export default function OverviewPage() {
   const [data, setData] = useState<OverviewData | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isInjecting, setIsInjecting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -121,8 +118,6 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-6">
-      <SubscriptionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-
       {/* Header with Action Buttons */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -135,12 +130,6 @@ export default function OverviewPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 font-medium text-cyan-300 transition-colors bg-cyan-500/10 border border-cyan-500/30 rounded-xl hover:bg-cyan-500/20 text-xs shadow-sm"
-          >
-            <Bell className="w-4 h-4 text-cyan-400" /> Subscribe to Alerts
-          </button>
           
           <button 
             onClick={handleInjectChaos}
