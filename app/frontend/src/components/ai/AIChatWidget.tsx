@@ -8,7 +8,7 @@ interface Message {
   timestamp: string
 }
 
-const socket = io('http://localhost:4000')
+const socket = io(window.location.port === '5173' ? 'http://localhost:4000' : undefined)
 
 export default function AIChatWidget() {
   const [isOpen, setIsOpen] = useState(false)

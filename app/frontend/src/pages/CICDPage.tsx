@@ -69,6 +69,8 @@ interface CICDData {
   history: PipelineRun[];
 }
 
+import { fetchApi } from '../api/client';
+
 export default function CICDPage() {
   const [data, setData] = useState<CICDData | null>(null);
   const [selectedStage, setSelectedStage] = useState<PipelineStage | null>(null);
@@ -76,7 +78,7 @@ export default function CICDPage() {
 
   const fetchCICD = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/cluster/cicd');
+      const res = await fetchApi('/api/cluster/cicd');
       if (res.ok) {
         const json = await res.json();
         setData(json);

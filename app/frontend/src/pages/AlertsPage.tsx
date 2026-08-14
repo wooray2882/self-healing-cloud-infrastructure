@@ -8,6 +8,7 @@ import {
   Terminal, 
   ShieldAlert 
 } from 'lucide-react';
+import { fetchApi } from '../api/client';
 
 interface AlertItem {
   id: string;
@@ -33,7 +34,7 @@ export default function AlertsPage() {
   const fetchAlerts = async () => {
     try {
       setRefreshing(true);
-      const res = await fetch('http://localhost:4000/api/cluster/alerts');
+      const res = await fetchApi('/api/cluster/alerts');
       if (res.ok) {
         const data = await res.json();
         setAlerts(data.alerts || []);
@@ -55,7 +56,7 @@ export default function AlertsPage() {
   const triggerTestAlert = async () => {
     try {
       setActionMessage('Dispatching test alert to Prometheus Alertmanager...');
-      const res = await fetch('http://localhost:4000/api/chaos/inject', {
+      const res = await fetchApi('/api/chaos/inject', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scenario: 'cpu_spike' })

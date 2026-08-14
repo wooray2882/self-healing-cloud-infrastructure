@@ -26,6 +26,7 @@ import {
   Radar
 } from 'recharts';
 import SubscriptionModal from '../components/SubscriptionModal';
+import { fetchApi } from '../api/client';
 
 interface OverviewData {
   kpis: {
@@ -52,13 +53,13 @@ export default function OverviewPage() {
   const fetchOverview = async () => {
     try {
       setRefreshing(true);
-      const res = await fetch('http://localhost:4000/api/cluster/overview');
+      const res = await fetchApi('/api/cluster/overview');
       if (res.ok) {
         const json = await res.json();
         setData(json);
       }
     } catch (err) {
-      console.error('Failed to load overview telemetry:', err);
+      console.error('Failed to fetch cluster overview:', err);
     } finally {
       setRefreshing(false);
     }
@@ -73,16 +74,16 @@ export default function OverviewPage() {
   const handleInjectChaos = async () => {
     setIsInjecting(true);
     try {
-      await fetch('http://localhost:4000/api/chaos/inject', { 
+      await fetchApi('/api/chaos/inject', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scenario: 'cpu_spike' })
       });
-      fetchOverview();
-      setTimeout(() => setIsInjecting(false), 2500);
-    } catch (error) {
-      console.error(error);
-      setIsInjecting(false);
+      setTimeout(fetchOverview, 1500);
+    } catch (err) {
+      console.error('Chaos injection error:', err);
+    } finally {
+      setTimeout(() => setIsInjecting(false), 2000);
     }
   };
 

@@ -11,6 +11,7 @@ import {
   Lock, 
   Unlock 
 } from 'lucide-react';
+import { fetchApi } from '../api/client';
 
 interface NodeItem {
   name: string;
@@ -24,6 +25,7 @@ interface NodeItem {
   role: string;
   readyCondition: string;
   age: string;
+  unschedulable?: boolean;
 }
 
 export default function NodesPage() {
@@ -36,7 +38,7 @@ export default function NodesPage() {
   const fetchNodes = async () => {
     try {
       setRefreshing(true);
-      const res = await fetch('http://localhost:4000/api/cluster/nodes');
+      const res = await fetchApi('/api/cluster/nodes');
       if (res.ok) {
         const data = await res.json();
         setNodes(data.nodes || []);
@@ -56,12 +58,11 @@ export default function NodesPage() {
   }, []);
 
   const handleCordonToggle = async (node: NodeItem) => {
-    const isCurrentlyCordoned = node.status === 'degraded' || node.readyCondition !== 'Ready';
-    const willCordon = !isCurrentlyCordoned;
+    const willCordon = !node.unschedulable;
     
     try {
       setActionMessage(`Updating node scheduling for ${node.name}...`);
-      const res = await fetch('http://localhost:4000/api/cluster/node/cordon', {
+      const res = await fetchApi('/api/cluster/node/cordon', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: node.name, unschedulable: willCordon })

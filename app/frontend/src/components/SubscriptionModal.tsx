@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X, Send, Phone, Mail } from 'lucide-react';
+import { fetchApi } from '../api/client';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -17,7 +18,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
     setStatus('loading');
 
     try {
-      const res = await fetch('http://localhost:4000/api/subscribe', {
+      const res = await fetchApi('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ protocol, endpoint }),

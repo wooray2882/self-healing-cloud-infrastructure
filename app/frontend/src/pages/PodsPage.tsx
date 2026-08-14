@@ -10,6 +10,7 @@ import {
   RefreshCw, 
   Filter 
 } from 'lucide-react';
+import { fetchApi } from '../api/client';
 
 interface PodItem {
   name: string;
@@ -36,7 +37,7 @@ export default function PodsPage() {
   const fetchPods = async () => {
     try {
       setRefreshing(true);
-      const res = await fetch('http://localhost:4000/api/cluster/pods');
+      const res = await fetchApi('/api/cluster/pods');
       if (res.ok) {
         const data = await res.json();
         setPods(data.pods || []);
@@ -58,7 +59,7 @@ export default function PodsPage() {
   const handleRestartPod = async (pod: PodItem) => {
     try {
       setActionMessage(`Initiating restart for pod ${pod.name}...`);
-      const res = await fetch('http://localhost:4000/api/cluster/pod/restart', {
+      const res = await fetchApi('/api/cluster/pod/restart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: pod.name, namespace: pod.namespace })

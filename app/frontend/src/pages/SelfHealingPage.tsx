@@ -9,6 +9,7 @@ import {
   Sparkles, 
   Sliders 
 } from 'lucide-react';
+import { fetchApi } from '../api/client';
 
 interface Playbook {
   id: string;
@@ -37,7 +38,7 @@ export default function SelfHealingPage() {
   const fetchRemediations = async () => {
     try {
       setRefreshing(true);
-      const res = await fetch('http://localhost:4000/api/cluster/remediations');
+      const res = await fetchApi('/api/cluster/remediations');
       if (res.ok) {
         const data = await res.json();
         setPlaybooks(data.activePlaybooks || []);

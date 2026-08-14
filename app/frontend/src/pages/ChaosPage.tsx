@@ -23,6 +23,8 @@ interface Scenario {
   payload: string;
 }
 
+import { fetchApi } from '../api/client';
+
 export default function ChaosPage() {
   const [runningScenario, setRunningScenario] = useState<string | null>(null);
   const [chaosLog, setChaosLog] = useState<{ id: number; text: string; time: string; type: string }[]>([
@@ -90,7 +92,7 @@ export default function ChaosPage() {
     ]);
 
     try {
-      const res = await fetch('http://localhost:4000/api/chaos/inject', {
+      const res = await fetchApi('/api/chaos/inject', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scenario: scenario.payload })
@@ -102,10 +104,16 @@ export default function ChaosPage() {
           { id: Date.now() + 2, text: `✓ Remediation completed successfully! Cluster telemetry stabilized.`, time: new Date().toLocaleTimeString(), type: 'success' },
           ...prev
         ]);
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        setChaosLog(prev => [
+          { id: Date.now(), text: `✗ Fault injection rejected: ${errorData.message || res.statusText}`, time: new Date().toLocaleTimeString(), type: 'error' },
+          ...prev
+        ]);
       }
-    } catch (err) {
+    } catch (err: any) {
       setChaosLog(prev => [
-        { id: Date.now(), text: `✗ Failed to inject fault: Network error`, time: new Date().toLocaleTimeString(), type: 'error' },
+        { id: Date.now(), text: `✗ Failed to inject fault: ${err.message || 'Network error'}`, time: new Date().toLocaleTimeString(), type: 'error' },
         ...prev
       ]);
     } finally {

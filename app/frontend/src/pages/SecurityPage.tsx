@@ -50,12 +50,14 @@ interface SecurityData {
   auditLog: SecurityAuditEvent[];
 }
 
+import { fetchApi } from '../api/client';
+
 export default function SecurityPage() {
   const [data, setData] = useState<SecurityData | null>(null);
 
   const fetchSecurityData = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/cluster/security');
+      const res = await fetchApi('/api/cluster/security');
       if (res.ok) {
         const json = await res.json();
         setData(json);

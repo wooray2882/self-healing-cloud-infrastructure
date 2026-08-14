@@ -21,6 +21,7 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts';
+import { fetchApi } from '../api/client';
 
 interface MetricPoint {
   time: string;
@@ -48,7 +49,7 @@ export default function MetricsPage() {
   const fetchMetrics = async () => {
     try {
       setRefreshing(true);
-      const res = await fetch('http://localhost:4000/api/cluster/metrics');
+      const res = await fetchApi('/api/cluster/metrics');
       if (res.ok) {
         const data = await res.json();
         setMetrics(data);
