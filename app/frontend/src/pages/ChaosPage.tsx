@@ -9,6 +9,7 @@ import {
   ShieldCheck, 
   Layers
 } from 'lucide-react';
+import { fetchApi } from '../api/client';
 
 interface Scenario {
   id: string;
@@ -23,8 +24,6 @@ interface Scenario {
   payload: string;
 }
 
-import { fetchApi } from '../api/client';
-
 export default function ChaosPage() {
   const [runningScenario, setRunningScenario] = useState<string | null>(null);
   const [chaosLog, setChaosLog] = useState<{ id: number; text: string; time: string; type: string }[]>([
@@ -37,7 +36,7 @@ export default function ChaosPage() {
       name: 'CPU Exhaustion Stress Test',
       category: 'Compute Load',
       icon: Cpu,
-      color: 'from-amber-500/20 to-rose-500/20 border-amber-500/40 text-amber-400',
+      color: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
       description: 'Simulates 100% CPU thread lock on the backend container. Verifies Prometheus HighCPUUsage rule triggering and HPA replica scale-out.',
       blastRadius: 'Single Pod (healops-backend)',
       expectedHealTime: '< 10s',
@@ -49,7 +48,7 @@ export default function ChaosPage() {
       name: 'Pod Eviction / Sudden Death',
       category: 'Workload Resiliency',
       icon: Trash2,
-      color: 'from-rose-500/20 to-red-500/20 border-rose-500/40 text-rose-400',
+      color: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
       description: 'Forcefully terminates the active application instance. Proves Kubernetes ReplicaSets maintain high availability with zero traffic drop.',
       blastRadius: '1 Pod replica',
       expectedHealTime: '< 3s',
@@ -61,7 +60,7 @@ export default function ChaosPage() {
       name: 'Memory Leak & Pressure Test',
       category: 'Resource Saturation',
       icon: HardDrive,
-      color: 'from-cyan-500/20 to-blue-500/20 border-cyan-500/40 text-cyan-400',
+      color: 'text-sky-400 bg-sky-500/10 border-sky-500/20',
       description: 'Artificially consumes memory to 85% limit. Ingests Alertmanager webhook and executes autonomous container restart before OOMKill occurs.',
       blastRadius: 'Memory CGroup',
       expectedHealTime: '< 6s',
@@ -73,7 +72,7 @@ export default function ChaosPage() {
       name: 'Network Latency & Drop Simulation',
       category: 'Network Resilience',
       icon: WifiOff,
-      color: 'from-violet-500/20 to-purple-500/20 border-violet-500/40 text-violet-400',
+      color: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
       description: 'Injects 400ms synthetic round-trip latency. Tests Kubernetes readiness probe failure detection and automatic traffic rerouting.',
       blastRadius: 'Service Endpoints',
       expectedHealTime: '< 5s',
@@ -140,70 +139,70 @@ export default function ChaosPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-slate-800/60">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
-            <Flame className="h-7 w-7 text-rose-500" />
+          <h1 className="text-base sm:text-lg font-semibold tracking-tight text-white flex items-center gap-2">
+            <Flame className="h-4.5 w-4.5 text-rose-500" />
             Chaos Engineering & Resiliency Lab
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-xs text-slate-400 mt-0.5">
             Safely inject real infrastructure failures into Amazon EKS and observe autonomous AI recovery loops
           </p>
         </div>
       </div>
 
       {/* Safety Guardrails Banner */}
-      <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-2xl p-4.5 flex items-center gap-4">
-        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400">
-          <ShieldCheck className="h-6 w-6" />
+      <div className="card-panel p-3 flex items-center gap-3">
+        <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-md text-emerald-400 shrink-0">
+          <ShieldCheck className="h-4 w-4" />
         </div>
         <div className="text-xs text-slate-300">
-          <strong className="text-white">Active Blast Radius Controls:</strong> All chaos injections are strictly scoped to the <code className="text-cyan-400 font-mono">default</code> application namespace. AWS control plane, IAM authentication, and monitoring services are protected by hard security guardrails.
+          <strong className="text-slate-100">Active Blast Radius Controls:</strong> All chaos injections are strictly scoped to the <code className="text-sky-400 font-mono">default</code> application namespace. AWS control plane, IAM authentication, and monitoring services are protected by hard security guardrails.
         </div>
       </div>
 
       {/* Scenarios Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {scenarios.map(sc => {
           const Icon = sc.icon;
           const isRunning = runningScenario === sc.id;
           return (
             <div 
               key={sc.id}
-              className="bg-slate-900/70 backdrop-blur-xl border border-slate-800/90 hover:border-slate-700/80 rounded-2xl p-5.5 transition-all shadow-xl flex flex-col justify-between group"
+              className="card-panel p-4 flex flex-col justify-between group"
             >
               <div>
-                <div className="flex items-start justify-between gap-3 mb-3.5">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2.5 rounded-xl border bg-gradient-to-br ${sc.color}`}>
-                      <Icon className="h-5 w-5" />
+                <div className="flex items-start justify-between gap-2.5 mb-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`p-1.5 rounded-md border ${sc.color}`}>
+                      <Icon className="h-4 w-4" />
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-white group-hover:text-cyan-400 transition-colors">
+                      <h3 className="text-xs font-semibold text-white group-hover:text-sky-400 transition-colors">
                         {sc.name}
                       </h3>
-                      <span className="text-[11px] text-slate-400">{sc.category}</span>
+                      <span className="text-[10px] text-slate-400">{sc.category}</span>
                     </div>
                   </div>
-                  <span className="text-[11px] font-mono text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-mono text-sky-400 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded">
                     {sc.targetApp}
                   </span>
                 </div>
 
-                <p className="text-xs text-slate-300 leading-relaxed mb-4">
+                <p className="text-xs text-slate-300 leading-relaxed mb-3">
                   {sc.description}
                 </p>
 
-                <div className="grid grid-cols-2 gap-2 text-xs bg-slate-950/50 p-3 rounded-xl border border-slate-800/60 mb-4">
+                <div className="grid grid-cols-2 gap-2 text-xs bg-slate-950/60 p-2.5 rounded-md border border-slate-800/80 mb-3">
                   <div>
-                    <span className="text-slate-500">Blast Radius:</span>{' '}
-                    <span className="text-white font-medium">{sc.blastRadius}</span>
+                    <span className="text-[11px] text-slate-500">Blast Radius:</span>{' '}
+                    <span className="text-slate-200 font-medium text-[11px]">{sc.blastRadius}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500">Expected MTTR:</span>{' '}
-                    <span className="text-emerald-400 font-bold">{sc.expectedHealTime}</span>
+                    <span className="text-[11px] text-slate-500">Expected MTTR:</span>{' '}
+                    <span className="text-emerald-400 font-semibold text-[11px]">{sc.expectedHealTime}</span>
                   </div>
                 </div>
               </div>
@@ -211,14 +210,10 @@ export default function ChaosPage() {
               <button
                 onClick={() => handleInjectChaos(sc)}
                 disabled={isRunning}
-                className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 active:scale-98 ${
-                  isRunning
-                    ? 'bg-rose-500/50 text-white cursor-wait animate-pulse'
-                    : 'bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white shadow-rose-500/20'
-                }`}
+                className="btn-danger w-full text-xs py-2"
               >
-                <Play className={`h-3.5 w-3.5 ${isRunning ? 'animate-spin' : ''}`} />
-                {isRunning ? 'Executing Scenario...' : 'Inject Chaos Scenario'}
+                <Play className={`h-3 w-3 ${isRunning ? 'animate-spin' : ''}`} />
+                {isRunning ? 'Executing Fault...' : 'Inject Chaos Scenario'}
               </button>
             </div>
           );
@@ -226,20 +221,22 @@ export default function ChaosPage() {
       </div>
 
       {/* Live Chaos Console / Audit Stream */}
-      <div className="bg-slate-900/70 backdrop-blur-xl border border-slate-800/90 rounded-2xl p-5 shadow-xl">
-        <h2 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-          <Layers className="h-4 w-4 text-cyan-400" />
-          Live Chaos Execution & AI Telemetry Console
-        </h2>
+      <div className="card-panel">
+        <div className="mb-2 pb-2 border-b border-slate-800/80">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+            <Layers className="h-3.5 w-3.5 text-sky-400" />
+            Live Chaos Execution & AI Telemetry Console
+          </h2>
+        </div>
 
-        <div className="bg-slate-950 rounded-xl p-3.5 font-mono text-xs text-slate-300 space-y-2 max-h-48 overflow-y-auto border border-slate-800">
+        <div className="bg-slate-950 rounded-md p-3 font-mono text-xs text-slate-300 space-y-1.5 max-h-48 overflow-y-auto border border-slate-800/80">
           {chaosLog.map(log => (
-            <div key={log.id} className="flex items-start gap-2.5 leading-relaxed">
-              <span className="text-slate-500 shrink-0">[{log.time}]</span>
-              <span className={`${
-                log.type === 'trigger' ? 'text-amber-400 font-bold' :
-                log.type === 'heal' ? 'text-cyan-400' :
-                log.type === 'success' ? 'text-emerald-400 font-bold' :
+            <div key={log.id} className="flex items-start gap-2 leading-relaxed">
+              <span className="text-slate-500 shrink-0 text-[11px]">[{log.time}]</span>
+              <span className={`text-[11px] ${
+                log.type === 'trigger' ? 'text-amber-400 font-semibold' :
+                log.type === 'heal' ? 'text-sky-400' :
+                log.type === 'success' ? 'text-emerald-400 font-semibold' :
                 log.type === 'error' ? 'text-rose-400' : 'text-slate-400'
               }`}>
                 {log.text}

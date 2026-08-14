@@ -91,140 +91,132 @@ export default function PodsPage() {
   const totalRestarts = pods.reduce((acc, p) => acc + p.restarts, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-slate-800/60">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
-            <Layers className="h-7 w-7 text-indigo-400" />
+          <h1 className="text-base sm:text-lg font-semibold tracking-tight text-white flex items-center gap-2">
+            <Layers className="h-4.5 w-4.5 text-sky-400" />
             Pod Workload Telemetry
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-xs text-slate-400 mt-0.5">
             Real-time container lifecycle, health probes, and restart tracking across all namespaces
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {actionMessage && (
-            <span className="text-xs bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-3 py-1.5 rounded-lg animate-pulse">
+            <span className="text-xs bg-sky-500/10 text-sky-300 border border-sky-500/20 px-2.5 py-1 rounded-md animate-pulse">
               {actionMessage}
             </span>
           )}
           <button
             onClick={fetchPods}
             disabled={refreshing}
-            className="flex items-center gap-2 px-3.5 py-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-300 rounded-xl text-sm font-medium transition-all shadow-sm active:scale-95 disabled:opacity-50"
+            className="btn-secondary text-xs"
           >
-            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin text-cyan-400' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin text-sky-400' : ''}`} />
             Refresh
           </button>
         </div>
       </div>
 
-      {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-4.5 flex items-center gap-4">
-          <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400">
-            <Layers className="h-6 w-6" />
+      {/* Summary KPI Cards (monday.com Minimalist Style) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="card-panel p-3">
+          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between">
+            <span>Total Pods</span>
+            <Layers className="h-3.5 w-3.5 text-indigo-400" />
           </div>
-          <div>
-            <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Discovered Pods</div>
-            <div className="text-2xl font-bold text-white mt-0.5">{totalPods}</div>
-          </div>
+          <div className="text-lg sm:text-xl font-semibold text-white font-mono mt-1">{totalPods}</div>
         </div>
 
-        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-4.5 flex items-center gap-4">
-          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400">
-            <CheckCircle2 className="h-6 w-6" />
+        <div className="card-panel p-3">
+          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between">
+            <span>Running</span>
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
           </div>
-          <div>
-            <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">Running Workloads</div>
-            <div className="text-2xl font-bold text-white mt-0.5">{runningPods} <span className="text-xs text-emerald-400 font-normal">/ {totalPods}</span></div>
-          </div>
+          <div className="text-lg sm:text-xl font-semibold text-white font-mono mt-1">{runningPods} <span className="text-xs text-emerald-400 font-normal">/ {totalPods}</span></div>
         </div>
 
-        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-4.5 flex items-center gap-4">
-          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400">
-            <RotateCcw className="h-6 w-6" />
+        <div className="card-panel p-3">
+          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between">
+            <span>Restarts (5m)</span>
+            <RotateCcw className="h-3.5 w-3.5 text-amber-400" />
           </div>
-          <div>
-            <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Restarts (5m)</div>
-            <div className="text-2xl font-bold text-white mt-0.5">{totalRestarts}</div>
-          </div>
+          <div className="text-lg sm:text-xl font-semibold text-white font-mono mt-1">{totalRestarts}</div>
         </div>
 
-        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-4.5 flex items-center gap-4">
-          <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-cyan-400">
-            <Server className="h-6 w-6" />
+        <div className="card-panel p-3">
+          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between">
+            <span>Namespaces</span>
+            <Server className="h-3.5 w-3.5 text-sky-400" />
           </div>
-          <div>
-            <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">Active Namespaces</div>
-            <div className="text-2xl font-bold text-white mt-0.5">{namespaces.length - 1}</div>
-          </div>
+          <div className="text-lg sm:text-xl font-semibold text-white font-mono mt-1">{namespaces.length - 1}</div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-3.5">
+      <div className="card-panel p-2.5 flex flex-col md:flex-row gap-2.5 justify-between items-center">
         {/* Namespace Filter Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
-          <span className="text-xs text-slate-500 flex items-center gap-1 mr-1">
-            <Filter className="h-3.5 w-3.5" /> Namespace:
+        <div className="flex items-center gap-1 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+          <span className="text-[11px] text-slate-500 flex items-center gap-1 mr-1">
+            <Filter className="h-3 w-3" /> Namespace:
           </span>
           {namespaces.map(ns => (
             <button
               key={ns}
               onClick={() => setSelectedNamespace(ns)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap ${
+              className={`px-2 py-1 rounded text-[11px] font-medium transition-colors whitespace-nowrap ${
                 selectedNamespace === ns
-                  ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm shadow-cyan-500/20'
-                  : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-700/40'
+                  ? 'bg-sky-500 text-slate-950 font-semibold'
+                  : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700/60'
               }`}
             >
-              {ns === 'all' ? 'All Namespaces' : ns}
+              {ns === 'all' ? 'All' : ns}
             </button>
           ))}
         </div>
 
         {/* Search Input */}
-        <div className="relative w-full md:w-72">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <div className="relative w-full md:w-64">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
           <input
             type="text"
             placeholder="Search pod or node..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-slate-950/60 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+            className="w-full pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-colors"
           />
         </div>
       </div>
 
       {/* Pods Table */}
-      <div className="bg-slate-900/70 backdrop-blur-xl border border-slate-800/90 rounded-2xl overflow-hidden shadow-xl">
+      <div className="card-panel overflow-hidden p-0">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-800/80 bg-slate-950/40 text-slate-400 uppercase tracking-wider font-semibold">
-                <th className="py-3.5 px-4">Pod Name</th>
-                <th className="py-3.5 px-4">Namespace</th>
-                <th className="py-3.5 px-4">Status & Ready</th>
-                <th className="py-3.5 px-4">Restarts</th>
-                <th className="py-3.5 px-4">Node Placement</th>
-                <th className="py-3.5 px-4">Est. CPU / Mem</th>
-                <th className="py-3.5 px-4">Age</th>
-                <th className="py-3.5 px-4 text-right">Actions</th>
+              <tr className="border-b border-slate-800 bg-slate-950/50 text-slate-400 uppercase tracking-wider text-[10px] font-semibold">
+                <th className="py-2.5 px-3">Pod Name</th>
+                <th className="py-2.5 px-3">Namespace</th>
+                <th className="py-2.5 px-3">Status</th>
+                <th className="py-2.5 px-3">Restarts</th>
+                <th className="py-2.5 px-3">Node Placement</th>
+                <th className="py-2.5 px-3">Est. CPU / Mem</th>
+                <th className="py-2.5 px-3">Age</th>
+                <th className="py-2.5 px-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-slate-800/60 text-[11px]">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
-                    <RefreshCw className="h-6 w-6 animate-spin text-cyan-400 mx-auto mb-2" />
+                  <td colSpan={8} className="py-8 text-center text-slate-400">
+                    <RefreshCw className="h-5 w-5 animate-spin text-sky-400 mx-auto mb-1.5" />
                     Querying live Kubernetes pod specifications...
                   </td>
                 </tr>
               ) : filteredPods.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <td colSpan={8} className="py-8 text-center text-slate-400">
                     No pods found matching your criteria.
                   </td>
                 </tr>
@@ -233,14 +225,14 @@ export default function PodsPage() {
                   const isRunning = pod.phase === 'Running';
                   const isCritical = pod.status === 'critical' || pod.phase === 'Failed';
                   return (
-                    <tr key={`${pod.namespace}-${pod.name}`} className="hover:bg-slate-800/40 transition-colors group">
-                      <td className="py-3 px-4 font-mono font-medium text-white group-hover:text-cyan-400 transition-colors max-w-[220px] truncate">
+                    <tr key={`${pod.namespace}-${pod.name}`} className="hover:bg-slate-800/30 transition-colors group">
+                      <td className="py-2 px-3 font-mono font-medium text-slate-200 group-hover:text-sky-400 transition-colors max-w-[200px] truncate">
                         {pod.name}
                       </td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded text-[11px] font-mono border ${
+                      <td className="py-2 px-3">
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono border ${
                           pod.namespace === 'default'
-                            ? 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20'
+                            ? 'bg-sky-500/10 text-sky-300 border-sky-500/20'
                             : pod.namespace === 'monitoring'
                             ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
                             : 'bg-slate-800 text-slate-400 border-slate-700'
@@ -248,38 +240,38 @@ export default function PodsPage() {
                           {pod.namespace}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${
+                      <td className="py-2 px-3">
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border ${
                           isRunning && !isCritical
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                             : isCritical
-                            ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-                            : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                            ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                            : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                         }`}>
-                          {isRunning ? <CheckCircle2 className="h-3 w-3" /> : isCritical ? <XCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                          {isRunning ? <CheckCircle2 className="h-2.5 w-2.5" /> : isCritical ? <XCircle className="h-2.5 w-2.5" /> : <AlertTriangle className="h-2.5 w-2.5" />}
                           {pod.phase} ({pod.ready})
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-mono">
-                        <span className={`${pod.restarts > 0 ? 'text-amber-400 font-bold' : 'text-slate-400'}`}>
+                      <td className="py-2 px-3 font-mono">
+                        <span className={`${pod.restarts > 0 ? 'text-amber-400 font-semibold' : 'text-slate-400'}`}>
                           {pod.restarts}
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-mono text-slate-400 text-[11px]">
+                      <td className="py-2 px-3 font-mono text-slate-400 text-[10px]">
                         {pod.node}
                       </td>
-                      <td className="py-3 px-4 text-slate-300">
-                        <span className="text-cyan-400 font-mono">{pod.cpu}</span> / <span className="text-violet-400 font-mono">{pod.mem}</span>
+                      <td className="py-2 px-3 text-slate-300">
+                        <span className="text-sky-400 font-mono">{pod.cpu}</span> / <span className="text-purple-400 font-mono">{pod.mem}</span>
                       </td>
-                      <td className="py-3 px-4 text-slate-400">
+                      <td className="py-2 px-3 text-slate-400">
                         {pod.age}
                       </td>
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-2 px-3 text-right">
                         <button
                           onClick={() => handleRestartPod(pod)}
-                          className="px-2.5 py-1 bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 rounded-lg text-xs font-medium transition-colors border border-slate-700/60 hover:border-rose-500/30 inline-flex items-center gap-1"
+                          className="btn-secondary text-[10px] py-0.5 px-2"
                         >
-                          <RotateCcw className="h-3 w-3" />
+                          <RotateCcw className="h-2.5 w-2.5" />
                           Restart
                         </button>
                       </td>

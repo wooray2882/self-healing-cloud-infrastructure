@@ -17,7 +17,7 @@ export default function AIChatWidget() {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! I am your HealOps AI assistant. How can I help you manage your cluster today?',
+      content: 'Hello! I am your HealOps AI SRE assistant. Ask me to query cluster health, runbooks, or inspect incident root-causes.',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ])
@@ -32,10 +32,9 @@ export default function AIChatWidget() {
     }
   }, [messages, isOpen])
 
-  // Listen for WebSockets from the backend!
+  // Listen for WebSockets from backend
   useEffect(() => {
     socket.on('remediation_event', (data: { timestamp: string, message: string }) => {
-      // Auto-open the chat widget if it's closed so the user sees the alert!
       setIsOpen(true);
       
       setMessages(prev => [...prev, {
@@ -65,18 +64,18 @@ export default function AIChatWidget() {
     setMessages([...messages, newMessage])
     setInput('')
 
-    // Mock AI response
+    // AI response simulation
     setTimeout(() => {
       setMessages(prev => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: 'I have received your command. Once the backend is connected, I will execute this via Bedrock Action Groups.',
+          content: 'Command acknowledged. Analyzing telemetry against Amazon Bedrock AI policy guardrails.',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ])
-    }, 1000)
+    }, 800)
   }
 
   return (
@@ -84,19 +83,20 @@ export default function AIChatWidget() {
       {/* Floating Action Button */}
       <button
         onClick={toggleChat}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 z-50 glow-purple"
+        className="fixed bottom-5 right-5 w-11 h-11 rounded-md flex items-center justify-center shadow-lg transition-transform hover:scale-105 z-50 border border-sky-400/30"
         style={{
-          background: 'linear-gradient(135deg, #06D6F0, #8B5CF6)',
+          background: 'linear-gradient(135deg, #0ea5e9, #6366f1)',
           color: 'white'
         }}
+        title="Open AI SRE Assistant"
       >
-        <i className={`ri-robot-2-line text-2xl transition-transform ${isOpen ? 'rotate-90 scale-0 absolute' : 'rotate-0 scale-100 relative'}`} />
-        <i className={`ri-close-line text-3xl transition-transform ${isOpen ? 'rotate-0 scale-100 relative' : '-rotate-90 scale-0 absolute'}`} />
+        <i className={`ri-robot-2-line text-lg transition-transform ${isOpen ? 'rotate-90 scale-0 absolute' : 'rotate-0 scale-100 relative'}`} />
+        <i className={`ri-close-line text-xl transition-transform ${isOpen ? 'rotate-0 scale-100 relative' : '-rotate-90 scale-0 absolute'}`} />
       </button>
 
       {/* Slide-over Chat Panel */}
       <div
-        className={`fixed top-0 right-0 h-full w-full sm:w-[400px] shadow-2xl transition-transform duration-300 ease-in-out z-40 flex flex-col`}
+        className={`fixed top-0 right-0 h-full w-full sm:w-[380px] shadow-2xl transition-transform duration-200 ease-in-out z-40 flex flex-col`}
         style={{
           background: 'var(--color-bg-sidebar)',
           borderLeft: '1px solid var(--color-border)',
@@ -104,48 +104,46 @@ export default function AIChatWidget() {
         }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b shrink-0" style={{ borderColor: 'var(--color-border)' }}>
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between p-3.5 border-b shrink-0" style={{ borderColor: 'var(--color-border)' }}>
+          <div className="flex items-center gap-2.5">
             <div
-              className="flex items-center justify-center w-8 h-8 rounded-lg"
-              style={{ background: 'linear-gradient(135deg, #06D6F0, #8B5CF6)' }}
+              className="flex items-center justify-center w-7 h-7 rounded-md"
+              style={{ background: 'linear-gradient(135deg, #0ea5e9, #6366f1)' }}
             >
-              <i className="ri-robot-2-line text-white" />
+              <i className="ri-robot-2-line text-white text-sm" />
             </div>
             <div>
-              <h2 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>AI Assistant</h2>
-              <p className="text-xs" style={{ color: 'var(--color-cyan-500)' }}>
-                <span className="live-dot mr-1" />
-                Online
+              <h2 className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>AI Assistant</h2>
+              <p className="text-[10px] text-emerald-400 flex items-center gap-1">
+                <span className="live-dot" />
+                Amazon Bedrock Ready
               </p>
             </div>
           </div>
-          <button onClick={toggleChat} className="p-2 rounded-lg hover:bg-white/5 transition-colors">
-            <i className="ri-close-line text-xl" style={{ color: 'var(--color-text-secondary)' }} />
+          <button onClick={toggleChat} className="p-1 rounded-md hover:bg-slate-800 transition-colors text-slate-400 hover:text-white">
+            <i className="ri-close-line text-base" />
           </button>
         </div>
 
         {/* Message Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-3.5 space-y-3">
           {messages.map((msg) => (
-            <div key={msg.id} className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'self-end items-end ml-auto' : 'self-start items-start'}`}>
+            <div key={msg.id} className={`flex flex-col max-w-[88%] ${msg.role === 'user' ? 'self-end items-end ml-auto' : 'self-start items-start'}`}>
               <div
-                className="p-3 rounded-2xl text-sm leading-relaxed"
+                className="p-2.5 rounded-md text-xs leading-relaxed"
                 style={{
                   background: msg.role === 'user' 
-                    ? 'linear-gradient(135deg, rgba(6,214,240,0.1), rgba(139,92,246,0.2))' 
-                    : 'var(--color-bg-input)',
+                    ? 'rgba(14, 165, 233, 0.15)' 
+                    : '#1e293b60',
                   color: 'var(--color-text-primary)',
                   border: msg.role === 'user'
-                    ? '1px solid rgba(139,92,246,0.3)'
-                    : '1px solid var(--color-border)',
-                  borderBottomRightRadius: msg.role === 'user' ? '0.25rem' : '1rem',
-                  borderBottomLeftRadius: msg.role === 'assistant' ? '0.25rem' : '1rem',
+                    ? '1px solid rgba(14, 165, 233, 0.3)'
+                    : '1px solid #1e293b',
                 }}
               >
                 {msg.content}
               </div>
-              <span className="text-[10px] mt-1 mx-1" style={{ color: 'var(--color-text-muted)' }}>
+              <span className="text-[9px] mt-0.5 mx-1 text-slate-500">
                 {msg.timestamp}
               </span>
             </div>
@@ -154,27 +152,21 @@ export default function AIChatWidget() {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 border-t shrink-0" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-base)' }}>
+        <div className="p-3 border-t shrink-0" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-base)' }}>
           <form onSubmit={handleSend} className="relative flex items-center">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask me to check health or fix an issue..."
-              className="w-full pl-4 pr-12 py-3 rounded-xl text-sm focus:outline-none transition-shadow"
-              style={{
-                background: 'var(--color-bg-input)',
-                border: '1px solid var(--color-border)',
-                color: 'var(--color-text-primary)'
-              }}
+              placeholder="Ask AI to query health or inspect incidents..."
+              className="w-full pl-3 pr-10 py-2 rounded-md text-xs bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-colors"
             />
             <button
               type="submit"
               disabled={!input.trim()}
-              className="absolute right-2 p-2 rounded-lg disabled:opacity-50 transition-colors"
-              style={{ color: 'var(--color-cyan-500)' }}
+              className="absolute right-1.5 p-1 rounded-md text-sky-400 hover:text-sky-300 disabled:opacity-40 transition-colors"
             >
-              <i className="ri-send-plane-fill text-lg" />
+              <i className="ri-send-plane-fill text-sm" />
             </button>
           </form>
         </div>
