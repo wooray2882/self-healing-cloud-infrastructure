@@ -8,7 +8,7 @@ import {
   AlertTriangle, 
   Check, 
   ExternalLink,
-  Phone
+  Mail
 } from 'lucide-react';
 import SubscriptionModal from '../SubscriptionModal';
 
@@ -177,7 +177,7 @@ export default function Topbar({ title }: TopbarProps) {
                     }}
                     className="flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 rounded-lg text-xs font-semibold transition-all active:scale-95 shadow-sm"
                   >
-                    <Phone className="h-3 w-3" /> Subscribe
+                    <Mail className="h-3 w-3" /> Email Alerts
                   </button>
                 </div>
 
@@ -228,7 +228,7 @@ export default function Topbar({ title }: TopbarProps) {
                     }}
                     className="text-cyan-400 hover:text-cyan-300 font-medium text-[11px] underline underline-offset-2"
                   >
-                    Manage SMS/Email Alerts
+                    Manage Email Alerts
                   </button>
                 </div>
               </div>

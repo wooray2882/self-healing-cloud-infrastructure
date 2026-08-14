@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Bell, 
+  Mail, 
   X, 
   Send, 
-  Phone, 
-  Mail, 
   ShieldCheck, 
   Lock, 
   Sparkles, 
   CheckCircle2, 
   Radio, 
-  AlertCircle 
+  AlertCircle,
+  Clock,
+  Smartphone
 } from 'lucide-react';
 import { fetchApi } from '../api/client';
 
@@ -21,8 +21,7 @@ interface SubscriptionModalProps {
 }
 
 const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }) => {
-  const [endpoint, setEndpoint] = useState('');
-  const [protocol, setProtocol] = useState<'sms' | 'email'>('sms');
+  const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -35,7 +34,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
       const res = await fetchApi('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ protocol, endpoint }),
+        body: JSON.stringify({ protocol: 'email', endpoint: email }),
       });
 
       if (!res.ok) {
@@ -45,12 +44,12 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
 
       setStatus('success');
       
-      // Auto close after 4 seconds
+      // Auto close after 4.5 seconds
       setTimeout(() => {
         setStatus('idle');
-        setEndpoint('');
+        setEmail('');
         onClose();
-      }, 4000);
+      }, 4500);
       
     } catch (error: any) {
       console.error(error);
@@ -66,7 +65,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
         >
           <motion.div
             initial={{ scale: 0.95, y: 15 }}
@@ -99,30 +98,34 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white tracking-tight">
-                  Connect Live Incident Alerts
+                  Connect Live Email Alerts
                 </h2>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Experience real-time two-phase notifications during automated self-healing
+                  Receive real-time 2-phase AWS SNS notifications directly to your inbox
                 </p>
               </div>
             </div>
 
-            {/* Why We Need This (Educational Breakdown) */}
+            {/* What you will experience */}
             <div className="my-4 bg-slate-950/60 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">
               <div className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                <Bell className="h-3.5 w-3.5 text-cyan-400" /> What you will experience:
+                <Mail className="h-3.5 w-3.5 text-cyan-400" /> What you will receive in your inbox:
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                <div className="bg-slate-900/80 p-2 rounded-xl border border-slate-800/80">
-                  <span className="font-bold text-amber-300">Phase 1: Triage Alert</span>
-                  <p className="text-slate-400 mt-0.5 leading-relaxed">
-                    Instant SMS/Email when Prometheus detects an anomaly with Incident ID & timestamps.
+                <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800/80">
+                  <span className="font-bold text-amber-300 flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> Phase 1: Triage Alert
+                  </span>
+                  <p className="text-slate-400 mt-1 leading-relaxed">
+                    Instant alert as soon as Prometheus catches an anomaly, with Incident ID, root cause, and timestamps.
                   </p>
                 </div>
-                <div className="bg-slate-900/80 p-2 rounded-xl border border-slate-800/80">
-                  <span className="font-bold text-emerald-300">Phase 2: MTTR Resolution</span>
-                  <p className="text-slate-400 mt-0.5 leading-relaxed">
-                    Follow-up SMS/Email when Bedrock AI executes remediation with exact MTTR (e.g. 4.2s).
+                <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800/80">
+                  <span className="font-bold text-emerald-300 flex items-center gap-1">
+                    <ShieldCheck className="h-3 w-3" /> Phase 2: MTTR Resolution
+                  </span>
+                  <p className="text-slate-400 mt-1 leading-relaxed">
+                    Follow-up email when Bedrock AI executes remediation with exact MTTR duration (e.g. 4.2s).
                   </p>
                 </div>
               </div>
@@ -130,56 +133,35 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
 
             {/* Subscription Form */}
             <form onSubmit={handleSubmit} className="space-y-3.5">
-              {/* Protocol Toggle */}
-              <div className="flex gap-2 p-1 bg-slate-950/70 border border-slate-800 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setProtocol('sms')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
-                    protocol === 'sms' 
-                      ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 text-cyan-300 shadow-sm' 
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <Phone className="w-3.5 h-3.5" /> SMS Text Message
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setProtocol('email')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
-                    protocol === 'email' 
-                      ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 text-cyan-300 shadow-sm' 
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <Mail className="w-3.5 h-3.5" /> Email Inbox
-                </button>
-              </div>
-
-              {/* Input Field */}
               <div>
                 <label className="block mb-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  {protocol === 'sms' ? 'Mobile Phone Number (Include Country Code)' : 'Work or Personal Email'}
+                  Your Work or Personal Email Address
                 </label>
-                <input
-                  type={protocol === 'sms' ? 'tel' : 'email'}
-                  placeholder={protocol === 'sms' ? '+1 (555) 000-0000' : 'engineer@company.com'}
-                  value={endpoint}
-                  onChange={(e) => setEndpoint(e.target.value)}
-                  required
-                  className="w-full px-4 py-2.5 text-sm text-white transition-all bg-slate-950/80 border rounded-xl border-slate-700/70 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 placeholder:text-slate-600"
-                />
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
+                  <input
+                    type="email"
+                    placeholder="engineer@company.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full pl-10 pr-4 py-2.5 text-sm text-white transition-all bg-slate-950/80 border rounded-xl border-slate-700/70 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 placeholder:text-slate-600"
+                  />
+                </div>
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  AWS SNS will send an instant confirmation email. Click <strong>Confirm subscription</strong> to activate alerts.
+                </span>
               </div>
 
-              {/* Privacy & Trust Guarantee */}
+              {/* Privacy Guarantee */}
               <div className="bg-slate-950/40 border border-slate-800/80 rounded-xl p-2.5 flex items-start gap-2.5">
                 <Lock className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 <div className="text-[10px] text-slate-400 leading-relaxed">
-                  <strong className="text-slate-300 font-semibold">100% Privacy Guarantee:</strong> Your contact details are used strictly for this interactive AWS SNS incident demo during your session. Zero marketing, zero data selling, and instant 1-click unsubscribe.
+                  <strong className="text-slate-300 font-semibold">100% Privacy Guarantee:</strong> Your email is used exclusively for this interactive AWS incident demonstration during your session. Zero marketing, zero data selling, and 1-click unsubscribe anytime.
                 </div>
               </div>
 
-              {/* Buttons */}
+              {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-2 pt-1">
                 <button
                   type="submit"
@@ -190,11 +172,11 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
                     <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin" />
                   ) : status === 'success' ? (
                     <>
-                      <CheckCircle2 className="w-4 h-4 text-emerald-300" /> Subscription Initiated!
+                      <CheckCircle2 className="w-4 h-4 text-emerald-300" /> Confirmation Sent!
                     </>
                   ) : (
                     <>
-                      <Send className="w-3.5 h-3.5" /> Enable Live Alerts
+                      <Send className="w-3.5 h-3.5" /> Enable Live Email Alerts
                     </>
                   )}
                 </button>
@@ -218,7 +200,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
               >
                 <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-400" />
                 <span>
-                  Success! Check your {protocol === 'sms' ? 'phone' : 'inbox'} to confirm AWS SNS opt-in, then test a fault in the <strong>Chaos Lab</strong>!
+                  Success! Check your inbox for the AWS SNS confirmation email, click <strong>Confirm</strong>, then test a fault in the <strong>Chaos Lab</strong>!
                 </span>
               </motion.div>
             )}
@@ -233,6 +215,14 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
                 <span>{errorMessage}</span>
               </motion.div>
             )}
+
+            {/* Future Roadmap Note */}
+            <div className="mt-3.5 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500">
+              <span className="flex items-center gap-1.5">
+                <Smartphone className="h-3 w-3 text-slate-600" /> Mobile SMS & PagerDuty Integration
+              </span>
+              <span className="text-cyan-500 font-medium">Enterprise Roadmap</span>
+            </div>
           </motion.div>
         </motion.div>
       )}
