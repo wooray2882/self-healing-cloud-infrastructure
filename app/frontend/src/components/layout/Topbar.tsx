@@ -10,9 +10,11 @@ import {
   ExternalLink,
   Mail,
   Menu,
-  CheckCircle2
+  CheckCircle2,
+  Flame
 } from 'lucide-react';
 import SubscriptionModal from '../SubscriptionModal';
+import QuickChaosModal from '../chaos/QuickChaosModal';
 import { useNotifications } from '../../context/NotificationContext';
 import type { NotificationItem } from '../../context/NotificationContext';
 
@@ -26,6 +28,7 @@ export default function Topbar({ title, onMenuClick }: TopbarProps) {
   const { notifications, dismissNotification, clearAllNotifications } = useNotifications();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+  const [isChaosModalOpen, setIsChaosModalOpen] = useState(false);
   const flyoutRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.length;
@@ -68,6 +71,7 @@ export default function Topbar({ title, onMenuClick }: TopbarProps) {
   return (
     <>
       <SubscriptionModal isOpen={isSubModalOpen} onClose={() => setIsSubModalOpen(false)} />
+      <QuickChaosModal isOpen={isChaosModalOpen} onClose={() => setIsChaosModalOpen(false)} />
 
       <header
         className="flex items-center justify-between px-3 sm:px-5 h-12 shrink-0 border-b relative z-30"
@@ -93,14 +97,16 @@ export default function Topbar({ title, onMenuClick }: TopbarProps) {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-          {/* Live cluster indicator */}
-          <div 
-            className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium shrink-0 border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+          {/* Global Inject Chaos Button */}
+          <button
+            onClick={() => setIsChaosModalOpen(true)}
+            className="btn-danger text-xs flex items-center gap-1.5"
+            title="Inject Chaos Fault into EKS Cluster"
           >
-            <span className="live-dot" />
-            <span className="hidden xs:inline">Live Cluster</span>
-            <span className="xs:hidden">Live</span>
-          </div>
+            <Flame className="h-3.5 w-3.5" />
+            <span className="hidden xs:inline">Inject Chaos</span>
+            <span className="xs:hidden">Chaos</span>
+          </button>
 
           {/* Direct Email Alerts Button */}
           <button
