@@ -25,6 +25,7 @@ import {
   Radar
 } from 'recharts';
 import { fetchApi } from '../api/client';
+import LifecycleModal from '../components/infrastructure/LifecycleModal';
 
 interface OverviewData {
   kpis: {
@@ -46,6 +47,7 @@ export default function OverviewPage() {
   const [data, setData] = useState<OverviewData | null>(null);
   const [isInjecting, setIsInjecting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isLifecycleModalOpen, setIsLifecycleModalOpen] = useState(false);
 
   const fetchOverview = async () => {
     try {
@@ -118,6 +120,8 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-4">
+      <LifecycleModal isOpen={isLifecycleModalOpen} onClose={() => setIsLifecycleModalOpen(false)} />
+
       {/* Header with Action Buttons */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-slate-800/60">
         <div>
@@ -130,13 +134,22 @@ export default function OverviewPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsLifecycleModalOpen(true)}
+            className="btn-secondary text-xs flex items-center gap-1.5"
+            title="AWS Cloud Lifecycle & Spend Control"
+          >
+            <Server className="h-3.5 w-3.5 text-sky-400" />
+            <span>AWS Lifecycle</span>
+          </button>
+
           <button 
             onClick={handleInjectChaos}
             disabled={isInjecting}
             className="btn-danger text-xs"
           >
             <AlertTriangle className={`w-3.5 h-3.5 ${isInjecting ? 'animate-spin' : ''}`} /> 
-            {isInjecting ? 'Injecting Chaos...' : 'Inject Chaos (Test AI)'}
+            {isInjecting ? 'Injecting Chaos...' : 'Inject Chaos'}
           </button>
 
           <button
