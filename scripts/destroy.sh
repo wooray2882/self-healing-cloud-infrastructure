@@ -52,6 +52,11 @@ echo "→ Step 2/3: Terminating local port-forwarding tunnels..."
 pkill -f "port-forward" 2>/dev/null || true
 echo "  ✓ Local tunnels closed."
 
+# Force clean ECR images if present so Terraform doesn't block
+echo "  Cleaning ECR repository images..."
+aws ecr delete-repository --repository-name healops-backend-dev --force --region us-east-1 2>/dev/null || true
+aws ecr delete-repository --repository-name healops-frontend-dev --force --region us-east-1 2>/dev/null || true
+
 # Step 3: Run Terraform Destroy
 echo ""
 echo "→ Step 3/3: Running 'terraform destroy' in ${TF_DIR}..."
@@ -63,7 +68,7 @@ echo ""
 echo "==============================================================================="
 echo "  ✅ TEARDOWN COMPLETE — ALL AWS RESOURCES DESTROYED"
 echo "==============================================================================="
-echo "  Current AWS Spend: \$0.00 / day (ECR images retained at pennies/mo)"
+echo "  Current AWS Spend: \$0.00 / day"
 echo ""
 echo "  To spin up the entire cluster again in ~12 minutes, simply run:"
 echo "    ./scripts/rebuild.sh"
