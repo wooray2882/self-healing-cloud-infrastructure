@@ -24,8 +24,8 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: 'MONITORING',
     items: [
-      { label: 'Metrics',  icon: 'ri-line-chart-line',    to: '/metrics' },
-      { label: 'Alerts',   icon: 'ri-alarm-warning-line', to: '/alerts'  },
+      { label: 'Metrics',    icon: 'ri-line-chart-line',    to: '/metrics'   },
+      { label: 'Incidents',  icon: 'ri-alarm-warning-line', to: '/incidents' },
     ],
   },
   {
