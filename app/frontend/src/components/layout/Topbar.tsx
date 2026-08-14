@@ -8,12 +8,14 @@ import {
   AlertTriangle, 
   Check, 
   ExternalLink,
-  Mail
+  Mail,
+  Menu
 } from 'lucide-react';
 import SubscriptionModal from '../SubscriptionModal';
 
 interface TopbarProps {
   title: string;
+  onMenuClick?: () => void;
 }
 
 interface NotificationItem {
@@ -26,7 +28,7 @@ interface NotificationItem {
   unread: boolean;
 }
 
-export default function Topbar({ title }: TopbarProps) {
+export default function Topbar({ title, onMenuClick }: TopbarProps) {
   const navigate = useNavigate();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
@@ -116,24 +118,37 @@ export default function Topbar({ title }: TopbarProps) {
       <SubscriptionModal isOpen={isSubModalOpen} onClose={() => setIsSubModalOpen(false)} />
 
       <header
-        className="flex items-center justify-between px-6 h-14 shrink-0 border-b relative z-30"
+        className="flex items-center justify-between px-3 sm:px-6 h-14 shrink-0 border-b relative z-30"
         style={{
           background: 'var(--color-bg-sidebar)',
           borderColor: 'var(--color-border)',
         }}
       >
-        <h1 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-          {title}
-        </h1>
+        <div className="flex items-center gap-2.5 min-w-0">
+          {onMenuClick && (
+            <button
+              onClick={onMenuClick}
+              className="p-1.5 md:hidden text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 rounded-xl transition-all active:scale-95 shrink-0"
+              title="Open Navigation"
+            >
+              <Menu className="h-4.5 w-4.5" />
+            </button>
+          )}
 
-        <div className="flex items-center gap-3">
+          <h1 className="text-sm sm:text-base font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>
+            {title}
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Live indicator */}
           <div 
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-medium shrink-0"
             style={{ background: 'rgba(16,185,129,0.1)', color: '#34D399' }}
           >
             <span className="live-dot" />
-            Live Cluster
+            <span className="hidden xs:inline">Live Cluster</span>
+            <span className="xs:hidden">Live</span>
           </div>
 
           {/* Notification Bell & Alert Subscription Dropdown */}

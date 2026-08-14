@@ -71,7 +71,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
             initial={{ scale: 0.95, y: 15 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, y: 15 }}
-            className="w-full max-w-lg p-6 sm:p-7 border shadow-2xl bg-slate-900/95 border-slate-700/80 rounded-3xl relative overflow-hidden"
+            className="w-full max-w-lg p-5 sm:p-7 border shadow-2xl bg-slate-900/95 border-slate-700/80 rounded-3xl relative overflow-hidden max-h-[92vh] overflow-y-auto"
           >
             {/* Ambient background glow */}
             <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
