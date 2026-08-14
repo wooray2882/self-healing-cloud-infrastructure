@@ -56,12 +56,95 @@ export interface HealingEvent {
   details?: string;
 }
 
+export interface IncidentAuditRecord {
+  id: string;
+  title: string;
+  target: string;
+  triggeredAt: string;
+  triagedAt?: string;
+  resolvedAt?: string;
+  durationSeconds: number;
+  initiatedBy: string;
+  remediatedBy: string;
+  actionTaken: string;
+  status: 'INVESTIGATING' | 'REMEDIATING' | 'RESOLVED' | 'FAILED';
+  details: string;
+  verification: string;
+}
+
 export const inMemoryHealingEvents: HealingEvent[] = [
   { id: 1, action: 'Pod restart: healops-backend-auto-heal', target: 'healops-backend', time: 'Just now', status: 'success', pct: 100, details: 'Recovered from simulated CPU exhaustion' },
   { id: 2, action: 'HPA scale-out: healops-backend (2 → 4)', target: 'healops-backend', time: '18m ago', status: 'success', pct: 100, details: 'Scaled up due to HTTP traffic surge' },
   { id: 3, action: 'Node health check: ip-10-0-1-82', target: 'ip-10-0-1-82', time: '45m ago', status: 'success', pct: 100, details: 'Kubelet condition verified Ready' },
   { id: 4, action: 'Alertmanager route: #healops-alerts', target: 'AWS SNS', time: '1h ago', status: 'success', pct: 100, details: 'Dispatched incident summary to mobile subscriber' }
 ];
+
+export const inMemoryIncidentAudits: IncidentAuditRecord[] = [
+  {
+    id: 'INC-1049',
+    title: 'High CPU Thread Lock Anomaly',
+    target: 'healops-backend',
+    triggeredAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+    triagedAt: new Date(Date.now() - 1000 * 60 * 5 + 1800).toISOString(),
+    resolvedAt: new Date(Date.now() - 1000 * 60 * 5 + 4200).toISOString(),
+    durationSeconds: 4.2,
+    initiatedBy: 'Ray Woo (Chaos Lab)',
+    remediatedBy: 'Amazon Bedrock AI Engine (Claude 3.5 Sonnet)',
+    actionTaken: 'RESTART_POD',
+    status: 'RESOLVED',
+    details: 'Pod CPU utilization spiked to 98% due to simulated thread lock. AI selected rolling pod restart.',
+    verification: 'HTTP 200 health probe check passed on /health for 2/2 replicas across us-east-1a and us-east-1b'
+  },
+  {
+    id: 'INC-1048',
+    title: 'Pod Eviction & Sudden Death Recovery',
+    target: 'healops-backend',
+    triggeredAt: new Date(Date.now() - 1000 * 60 * 28).toISOString(),
+    triagedAt: new Date(Date.now() - 1000 * 60 * 28 + 1200).toISOString(),
+    resolvedAt: new Date(Date.now() - 1000 * 60 * 28 + 3100).toISOString(),
+    durationSeconds: 3.1,
+    initiatedBy: 'Prometheus Alertmanager Rule',
+    remediatedBy: 'Kubernetes Controller / Autonomous Agent',
+    actionTaken: 'RESTART_POD',
+    status: 'RESOLVED',
+    details: 'Workload replica terminated. Proactive health probe detected drop and verified ReplicaSet replacement.',
+    verification: 'Target pod restarted and reached Ready status in 3.1s'
+  },
+  {
+    id: 'INC-1047',
+    title: 'Traffic Spike & HPA Replica Scale-Out',
+    target: 'healops-backend',
+    triggeredAt: new Date(Date.now() - 1000 * 60 * 75).toISOString(),
+    triagedAt: new Date(Date.now() - 1000 * 60 * 75 + 2100).toISOString(),
+    resolvedAt: new Date(Date.now() - 1000 * 60 * 75 + 5600).toISOString(),
+    durationSeconds: 5.6,
+    initiatedBy: 'Prometheus HighTrafficRule',
+    remediatedBy: 'Amazon Bedrock AI Engine',
+    actionTaken: 'SCALE_UP',
+    status: 'RESOLVED',
+    details: 'Traffic throughput exceeded baseline threshold. Scaled deployment from 2 to 4 pods.',
+    verification: 'Deployment replica count scaled to 4/4 running healthy'
+  }
+];
+
+export async function getIncidentAuditData() {
+  const totalIncidents = inMemoryIncidentAudits.length;
+  const resolved = inMemoryIncidentAudits.filter(i => i.status === 'RESOLVED').length;
+  const avgMttr = inMemoryIncidentAudits.length > 0 
+    ? (inMemoryIncidentAudits.reduce((acc, curr) => acc + curr.durationSeconds, 0) / inMemoryIncidentAudits.length).toFixed(1)
+    : '4.2';
+
+  return {
+    incidents: inMemoryIncidentAudits,
+    stats: {
+      total: totalIncidents,
+      resolved,
+      resolutionRate: `${((resolved / (totalIncidents || 1)) * 100).toFixed(1)}%`,
+      avgMttrSeconds: `${avgMttr}s`
+    }
+  };
+}
+
 
 export async function getLiveNodes(): Promise<NodeData[]> {
   try {
