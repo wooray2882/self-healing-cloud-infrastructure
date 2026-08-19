@@ -15,6 +15,9 @@ module "eks" {
   # Cluster endpoint access
   cluster_endpoint_public_access = true
 
+  # Grant cluster admin permissions to current creator
+  enable_cluster_creator_admin_permissions = true
+
   # Default node group configurations
   eks_managed_node_group_defaults = {
     ami_type       = "AL2_x86_64"
