@@ -1,83 +1,184 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { 
   AlertTriangle, 
   CheckCircle2, 
-  Flame, 
   Clock, 
   ShieldCheck, 
-  ExternalLink, 
   Check, 
-  Sparkles
+  Sparkles,
+  RefreshCw,
+  XCircle,
+  Wrench,
+  Bot
 } from 'lucide-react';
 import { useNotifications } from '../context/NotificationContext';
-import type { NotificationItem } from '../context/NotificationContext';
 import { fetchApi } from '../api/client';
+import { io } from 'socket.io-client';
+
+export interface IncidentAttempt {
+  timestamp: string;
+  action: string;
+  outcome: 'success' | 'failed';
+}
+
+export interface IncidentRecord {
+  id: string;
+  title: string;
+  targetResource: string;
+  confidence: number;
+  reasoning: string;
+  proposedAction: string;
+  status: 'pending_approval' | 'remediated' | 'escalated' | 'rejected' | 'resolved';
+  humanSummary: string;
+  attempts: IncidentAttempt[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function IncidentsPage() {
-  const navigate = useNavigate();
-  const { notifications, dismissNotification, clearAllNotifications, showToast, addNotification } = useNotifications();
-  const [isSimulating, setIsSimulating] = useState(false);
+  const { showToast } = useNotifications();
+  const [incidents, setIncidents] = useState<IncidentRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [simulating, setSimulating] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const handleSimulateIncident = async () => {
-    setIsSimulating(true);
+  const fetchIncidents = async () => {
     try {
-      showToast('warning', 'Injecting CPU fault to trigger live Alertmanager webhook...');
-      const res = await fetchApi('/api/chaos/inject', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario: 'cpu_spike', initiator: 'Ray Woo (Incident Console)' })
-      });
-
+      setLoading(true);
+      const res = await fetchApi('/api/incidents');
       if (res.ok) {
         const json = await res.json();
-        const incId = json.incidentId || 'INC-' + Math.floor(1000 + Math.random() * 9000);
-        
-        const newIncident: NotificationItem = {
-          id: incId.toLowerCase(),
-          type: 'incident',
-          severity: 'critical',
-          title: `Incident ${incId} (CPU Saturation Alert)`,
-          summary: 'Prometheus HighCPUUsage webhook ingested. Bedrock AI actively executing autonomous HPA scale-out.',
-          target: 'deployment/healops-backend',
-          remediationAction: 'SCALE_UP (Autonomous AI)',
-          mttr: '3.8s',
-          time: 'Just now',
-          link: '/self-healing'
-        };
+        setIncidents(json);
+      }
+    } catch (err) {
+      console.error('Failed to load incidents:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        addNotification(newIncident);
-        showToast('error', `🚨 [${incId}] Critical Anomaly Detected: CPU > 85% on healops-backend!`);
+  useEffect(() => {
+    fetchIncidents();
+
+    const socket = io(window.location.port === '5173' ? 'http://localhost:4000' : undefined, {
+      transports: ['websocket', 'polling'],
+      upgrade: true
+    });
+
+    socket.on('incident_created', (newIncident: IncidentRecord) => {
+      setIncidents(prev => [newIncident, ...prev.filter(inc => inc.id !== newIncident.id)]);
+      showToast('warning', `⚠️ New Incident Alert: ${newIncident.id} (${newIncident.status})`);
+    });
+
+    socket.on('incident_updated', (updated: IncidentRecord) => {
+      setIncidents(prev => prev.map(inc => inc.id === updated.id ? updated : inc));
+      showToast('success', `Status updated for Incident ${updated.id}: ${updated.status}`);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+  const handleApprove = async (id: string) => {
+    try {
+      showToast('info', `Executing approved remediation for ${id}...`);
+      const res = await fetchApi(`/api/incidents/${id}/approve`, { method: 'POST' });
+      if (res.ok) {
+        const json = await res.json();
+        setIncidents(prev => prev.map(inc => inc.id === id ? json.incident : inc));
+        showToast('success', `✓ Incident ${id} approved & remediated!`);
       }
     } catch (err: any) {
-      showToast('error', `Failed to trigger incident: ${err.message || 'Network error'}`);
+      showToast('error', `Failed to approve incident: ${err.message}`);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      const res = await fetchApi(`/api/incidents/${id}/reject`, { method: 'POST' });
+      if (res.ok) {
+        const json = await res.json();
+        setIncidents(prev => prev.map(inc => inc.id === id ? json.incident : inc));
+        showToast('info', `Incident ${id} rejected. No cluster changes made.`);
+      }
+    } catch (err: any) {
+      showToast('error', `Failed to reject incident: ${err.message}`);
+    }
+  };
+
+  const handleSimulateLowConfidence = async () => {
+    setSimulating(true);
+    try {
+      showToast('info', 'Simulating low-confidence anomaly payload (<85%)...');
+      const res = await fetchApi('/api/incidents/simulate-low-confidence', { method: 'POST' });
+      if (res.ok) {
+        const json = await res.json();
+        setIncidents(prev => [json.incident, ...prev.filter(i => i.id !== json.incident.id)]);
+        showToast('warning', `Simulated Low-Confidence Incident ${json.incident.id} Created!`);
+      }
+    } catch (err: any) {
+      showToast('error', `Simulation failed: ${err.message}`);
     } finally {
-      setIsSimulating(false);
+      setSimulating(false);
     }
   };
 
-  const handleDismiss = (id: string, title: string) => {
-    dismissNotification(id);
-    showToast('success', `Acknowledged and dismissed: ${title}`);
+  const handleSimulateCircuitBreaker = async () => {
+    setSimulating(true);
+    try {
+      showToast('info', 'Simulating 3 consecutive remediation failures...');
+      const res = await fetchApi('/api/incidents/simulate-circuit-breaker', { method: 'POST' });
+      if (res.ok) {
+        const json = await res.json();
+        setIncidents(prev => [json.incident, ...prev.filter(i => i.id !== json.incident.id)]);
+        showToast('error', `🚨 Circuit Breaker Tripped: ${json.incident.id} Escalated!`);
+      }
+    } catch (err: any) {
+      showToast('error', `Simulation failed: ${err.message}`);
+    } finally {
+      setSimulating(false);
+    }
   };
 
-  const handleNavigateAndDismiss = (item: NotificationItem) => {
-    dismissNotification(item.id);
-    navigate(item.link);
-  };
-
-  const getSeverityBadge = (severity: string) => {
-    switch (severity) {
-      case 'critical':
-        return <span className="bg-rose-600 text-white font-semibold px-2 py-0.5 rounded text-[10px] uppercase shadow-sm">CRITICAL</span>;
-      case 'warning':
-        return <span className="bg-amber-500 text-slate-950 font-bold px-2 py-0.5 rounded text-[10px] uppercase shadow-sm">WARNING</span>;
-      case 'healthy':
-        return <span className="bg-emerald-600 text-white font-semibold px-2 py-0.5 rounded text-[10px] uppercase shadow-sm">VERIFIED</span>;
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending_approval':
+        return (
+          <span className="bg-amber-500 text-slate-950 font-bold px-2 py-0.5 rounded text-[10px] uppercase shadow-sm flex items-center gap-1">
+            <Clock className="h-3 w-3" /> PENDING APPROVAL
+          </span>
+        );
+      case 'escalated':
+        return (
+          <span className="bg-rose-600 text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase shadow-sm flex items-center gap-1">
+            <AlertTriangle className="h-3 w-3" /> ESCALATED (CIRCUIT BREAKER)
+          </span>
+        );
+      case 'remediated':
+      case 'resolved':
+        return (
+          <span className="bg-emerald-600 text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase shadow-sm flex items-center gap-1">
+            <CheckCircle2 className="h-3 w-3" /> REMEDIATED
+          </span>
+        );
+      case 'rejected':
+        return (
+          <span className="bg-slate-700 text-white font-semibold px-2 py-0.5 rounded text-[10px] uppercase shadow-sm flex items-center gap-1">
+            <XCircle className="h-3 w-3" /> REJECTED
+          </span>
+        );
       default:
-        return <span className="bg-slate-700 text-white font-semibold px-2 py-0.5 rounded text-[10px] uppercase shadow-sm">INFO</span>;
+        return (
+          <span className="bg-sky-600 text-white font-semibold px-2 py-0.5 rounded text-[10px] uppercase shadow-sm">
+            {status}
+          </span>
+        );
     }
   };
+
+  const pendingCount = incidents.filter(i => i.status === 'pending_approval').length;
+  const escalatedCount = incidents.filter(i => i.status === 'escalated').length;
 
   return (
     <div className="space-y-4">
@@ -86,168 +187,220 @@ export default function IncidentsPage() {
         <div>
           <h1 className="text-base sm:text-lg font-semibold tracking-tight text-white flex items-center gap-2">
             <AlertTriangle className="h-4.5 w-4.5 text-amber-400" />
-            Incident Management & Live Remediations
+            Incidents & Human Escalation
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Active Prometheus rule violations, Bedrock AI remediation tracking, and notification sync
+            Low-confidence alerts, circuit breaker escalations, and Bedrock plain-English summaries
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        
+        {/* Demo Simulation Controls */}
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={handleSimulateIncident}
-            disabled={isSimulating}
-            className="btn-danger text-xs"
+            onClick={handleSimulateLowConfidence}
+            disabled={simulating}
+            className="btn-secondary text-xs"
+            title="Simulate <85% confidence incident requiring approval"
           >
-            <Flame className={`h-3.5 w-3.5 ${isSimulating ? 'animate-spin' : ''}`} />
-            {isSimulating ? 'Simulating...' : 'Simulate New Incident'}
+            <Bot className="h-3.5 w-3.5 text-amber-400" />
+            Test Low-Confidence (&lt;85%)
           </button>
-          
-          {notifications.length > 0 && (
-            <button
-              onClick={clearAllNotifications}
-              className="btn-secondary text-xs"
-              title="Acknowledge and dismiss all"
-            >
-              <Check className="h-3.5 w-3.5 text-emerald-400" />
-              Acknowledge All
-            </button>
-          )}
+          <button
+            onClick={handleSimulateCircuitBreaker}
+            disabled={simulating}
+            className="btn-danger text-xs"
+            title="Simulate 3 failed remediation attempts"
+          >
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Test Circuit Breaker
+          </button>
+          <button
+            onClick={fetchIncidents}
+            disabled={loading}
+            className="btn-secondary text-xs"
+            title="Refresh incident list"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin text-sky-400' : ''}`} />
+          </button>
         </div>
       </div>
 
-      {/* Summary KPI Strip */}
+      {/* KPI Cards Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="card-panel p-3">
           <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between">
-            <span>Active Incidents</span>
-            <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+            <span>Pending Approval</span>
+            <Clock className="h-3.5 w-3.5 text-amber-400" />
           </div>
-          <div className="text-lg sm:text-xl font-semibold text-white font-mono mt-1">
-            {notifications.length} <span className="text-xs font-normal text-slate-400">Unacknowledged</span>
+          <div className="text-lg sm:text-xl font-bold text-white font-mono mt-1">
+            {pendingCount}
           </div>
+          <div className="text-[10px] text-slate-400 mt-0.5">&lt;85% confidence score</div>
         </div>
 
         <div className="card-panel p-3">
           <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between">
-            <span>SRE MTTR Avg</span>
-            <Clock className="h-3.5 w-3.5 text-sky-400" />
+            <span>Circuit Breaker</span>
+            <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
           </div>
-          <div className="text-lg sm:text-xl font-semibold text-white font-mono mt-1">4.2s</div>
-          <div className="text-[10px] text-slate-500 mt-0.5">Autonomous AI resolution</div>
+          <div className="text-lg sm:text-xl font-bold text-white font-mono mt-1">
+            {escalatedCount}
+          </div>
+          <div className="text-[10px] text-slate-400 mt-0.5">3 failed tries / 15m window</div>
         </div>
 
         <div className="card-panel p-3">
           <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between">
-            <span>Remediation Engine</span>
+            <span>AI Summaries</span>
             <Sparkles className="h-3.5 w-3.5 text-purple-400" />
           </div>
-          <div className="text-lg sm:text-xl font-semibold text-white font-mono mt-1">Bedrock AI</div>
-          <div className="text-[10px] text-slate-500 mt-0.5">Closed-loop policy guardrails</div>
+          <div className="text-lg sm:text-xl font-bold text-white font-mono mt-1">Bedrock</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">4-sentence plain English</div>
         </div>
 
         <div className="card-panel p-3">
           <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between">
-            <span>Alerting Protocol</span>
+            <span>Alerting</span>
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
           </div>
-          <div className="text-lg sm:text-xl font-semibold text-white font-mono mt-1">AWS SNS</div>
-          <div className="text-[10px] text-slate-500 mt-0.5">Live Email Dispatch active</div>
+          <div className="text-lg sm:text-xl font-bold text-white font-mono mt-1">SNS + WebSockets</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Real-time live push</div>
         </div>
       </div>
 
-      {/* Incidents Feed & Sync Table */}
-      {notifications.length === 0 ? (
-        /* Empty State */
-        <div className="card-panel py-12 px-4 text-center flex flex-col items-center justify-center gap-3">
-          <div className="p-3 bg-emerald-600 text-white rounded-md shadow-md">
-            <CheckCircle2 className="h-8 w-8" />
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-white">All Caught Up! Zero Active Incidents</h3>
-            <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto leading-relaxed">
-              All incident alerts have been acknowledged and cleared from your notification center. Prometheus Alertmanager is continuously probing cluster health.
+      {/* Incidents Feed */}
+      <div className="space-y-3">
+        {incidents.length === 0 ? (
+          <div className="card-panel py-12 text-center flex flex-col items-center justify-center gap-3">
+            <div className="p-3 bg-emerald-600 text-white rounded-md">
+              <CheckCircle2 className="h-8 w-8" />
+            </div>
+            <h3 className="text-sm font-semibold text-white">Zero Active Incidents</h3>
+            <p className="text-xs text-slate-400 max-w-md">
+              All incident alerts are clear. Use the test buttons above to simulate low-confidence or circuit breaker scenarios.
             </p>
           </div>
-          <button
-            onClick={handleSimulateIncident}
-            className="btn-primary text-xs mt-1"
-          >
-            <Flame className="h-3.5 w-3.5" /> Trigger Test Incident
-          </button>
-        </div>
-      ) : (
-        /* Active Incidents List */
-        <div className="space-y-2.5">
-          {notifications.map((item) => (
+        ) : (
+          incidents.map((incident) => (
             <div
-              key={item.id}
-              className="card-panel p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-700 transition-colors"
+              key={incident.id}
+              className={`card-panel p-4 flex flex-col gap-3 transition-all ${
+                incident.status === 'pending_approval'
+                  ? 'border-amber-500/40 bg-amber-500/5'
+                  : incident.status === 'escalated'
+                    ? 'border-rose-500/40 bg-rose-500/5'
+                    : 'border-slate-800'
+              }`}
             >
-              <div className="flex items-start gap-3 min-w-0">
-                <div className="shrink-0 mt-0.5">
-                  {getSeverityBadge(item.severity)}
+              {/* Header Row */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/60 pb-2.5">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xs font-mono font-bold text-sky-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                    {incident.id}
+                  </span>
+                  <h3 className="text-xs sm:text-sm font-semibold text-white">
+                    {incident.title}
+                  </h3>
                 </div>
 
-                <div className="min-w-0 space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 
-                      onClick={() => handleNavigateAndDismiss(item)}
-                      className="text-xs font-semibold text-white hover:text-sky-400 cursor-pointer transition-colors"
-                    >
-                      {item.title}
-                    </h3>
-                    <span className="text-[10px] text-slate-500 font-mono">• {item.time}</span>
-                  </div>
-
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    {item.summary}
-                  </p>
-
-                  <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 pt-0.5">
-                    {item.target && (
-                      <span className="flex items-center gap-1">
-                        <span className="text-slate-500">Target:</span>
-                        <code className="font-mono text-sky-400">{item.target}</code>
-                      </span>
-                    )}
-                    {item.remediationAction && (
-                      <span className="flex items-center gap-1">
-                        <span className="text-slate-500">Action:</span>
-                        <span className="text-purple-400 font-mono">{item.remediationAction}</span>
-                      </span>
-                    )}
-                    {item.mttr && (
-                      <span className="flex items-center gap-1">
-                        <span className="text-slate-500">MTTR:</span>
-                        <span className="text-emerald-400 font-semibold">{item.mttr}</span>
-                      </span>
-                    )}
-                  </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[10px] font-mono text-slate-400">
+                    Confidence: <strong className={incident.confidence < 85 ? 'text-amber-400' : 'text-emerald-400'}>{incident.confidence}%</strong>
+                  </span>
+                  {getStatusBadge(incident.status)}
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-2 shrink-0 self-end sm:self-center pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800 w-full sm:w-auto justify-end">
+              {/* Natural Language Bedrock Summary */}
+              <div className="bg-slate-950/80 p-3 rounded-md border border-slate-800/80">
+                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-purple-400 mb-1">
+                  <Sparkles className="h-3 w-3" />
+                  Bedrock Plain-English Summary
+                </div>
+                <p className="text-xs text-slate-200 leading-relaxed font-sans">
+                  {incident.humanSummary}
+                </p>
+              </div>
+
+              {/* Failed Attempt History for Escalated Incidents */}
+              {incident.attempts && incident.attempts.length > 0 && (
+                <div className="bg-slate-900/90 p-2.5 rounded-md border border-slate-800 text-xs">
+                  <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Remediation Attempt Log ({incident.attempts.length} attempts in 15m window)
+                  </div>
+                  <div className="space-y-1 font-mono text-[10px]">
+                    {incident.attempts.map((att, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-slate-300">
+                        <span>Try #{idx + 1}: {att.action} ({att.timestamp})</span>
+                        <span className={att.outcome === 'success' ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                          {att.outcome.toUpperCase()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Technical Reasoning Expandable */}
+              <div>
                 <button
-                  onClick={() => handleNavigateAndDismiss(item)}
-                  className="btn-secondary text-[11px] py-1 px-2.5"
-                  title="Navigate to resource & clear alert"
+                  onClick={() => setExpandedId(expandedId === incident.id ? null : incident.id)}
+                  className="text-[11px] text-sky-400 hover:text-sky-300 font-semibold"
                 >
-                  View Details <ExternalLink className="h-3 w-3" />
+                  {expandedId === incident.id ? 'Hide Technical Reasoning' : 'View Technical Reasoning'}
                 </button>
-                <button
-                  onClick={() => handleDismiss(item.id, item.title)}
-                  className="btn-secondary text-[11px] py-1 px-2 text-slate-300 hover:text-emerald-400"
-                  title="Acknowledge & Remove"
-                >
-                  <Check className="h-3.5 w-3.5" />
-                  Dismiss
-                </button>
+                {expandedId === incident.id && (
+                  <div className="mt-2 p-2.5 bg-slate-950 rounded border border-slate-800 font-mono text-[11px] text-slate-300 leading-relaxed">
+                    <strong className="text-slate-400 block mb-1">AI Reasoning:</strong>
+                    {incident.reasoning}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons Row */}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-xs">
+                <span className="text-[10px] text-slate-400 font-mono">
+                  Target: <code className="text-sky-400">{incident.targetResource}</code>
+                </span>
+
+                <div className="flex items-center gap-2">
+                  {incident.status === 'pending_approval' && (
+                    <>
+                      <button
+                        onClick={() => handleReject(incident.id)}
+                        className="btn-secondary text-[11px] py-1 px-3 text-slate-300 hover:text-rose-400"
+                      >
+                        <XCircle className="h-3.5 w-3.5" /> Reject
+                      </button>
+                      <button
+                        onClick={() => handleApprove(incident.id)}
+                        className="btn-primary text-[11px] py-1 px-3 bg-emerald-600 hover:bg-emerald-500"
+                      >
+                        <Check className="h-3.5 w-3.5" /> Approve & Execute Fix
+                      </button>
+                    </>
+                  )}
+
+                  {incident.status === 'escalated' && (
+                    <button
+                      onClick={() => handleApprove(incident.id)}
+                      className="btn-primary text-[11px] py-1 px-3 bg-sky-600 hover:bg-sky-500"
+                    >
+                      <Wrench className="h-3.5 w-3.5" /> Fix Manually
+                    </button>
+                  )}
+
+                  {(incident.status === 'remediated' || incident.status === 'resolved' || incident.status === 'rejected') && (
+                    <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Incident Closed
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
     </div>
   );
 }
