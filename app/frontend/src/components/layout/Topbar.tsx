@@ -11,11 +11,13 @@ import {
   Mail,
   Menu,
   CheckCircle2,
-  Flame
+  Flame,
+  Settings
 } from 'lucide-react';
 import SubscriptionModal from '../SubscriptionModal';
 import QuickChaosModal from '../chaos/QuickChaosModal';
 import { useNotifications } from '../../context/NotificationContext';
+import { useUser } from '../../context/UserContext';
 import type { NotificationItem } from '../../context/NotificationContext';
 
 interface TopbarProps {
@@ -26,6 +28,7 @@ interface TopbarProps {
 export default function Topbar({ title, onMenuClick }: TopbarProps) {
   const navigate = useNavigate();
   const { notifications, dismissNotification, clearAllNotifications } = useNotifications();
+  const { userName } = useUser();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const [isChaosModalOpen, setIsChaosModalOpen] = useState(false);
@@ -33,7 +36,6 @@ export default function Topbar({ title, onMenuClick }: TopbarProps) {
 
   const unreadCount = notifications.length;
 
-  // Close flyout when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (flyoutRef.current && !flyoutRef.current.contains(event.target as Node)) {
@@ -44,7 +46,6 @@ export default function Topbar({ title, onMenuClick }: TopbarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Auto-launch Alert Subscription modal on initial mount/refresh
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsSubModalOpen(true);
@@ -53,7 +54,6 @@ export default function Topbar({ title, onMenuClick }: TopbarProps) {
   }, []);
 
   const handleNotificationClick = (item: NotificationItem) => {
-    // Dismiss from list upon clicking/visiting
     dismissNotification(item.id);
     setIsNotifOpen(false);
     navigate(item.link);
@@ -67,6 +67,8 @@ export default function Topbar({ title, onMenuClick }: TopbarProps) {
       default: return <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />;
     }
   };
+
+  const userInitial = userName ? userName.charAt(0).toUpperCase() : 'R';
 
   return (
     <>
@@ -116,6 +118,21 @@ export default function Topbar({ title, onMenuClick }: TopbarProps) {
             <Mail className="h-3.5 w-3.5" /> Email Alerts
           </button>
 
+          {/* User Profile Avatar Pill */}
+          <button
+            onClick={() => setIsSubModalOpen(true)}
+            className="flex items-center gap-1.5 p-1 px-2.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700/80 rounded-md transition-colors text-xs text-slate-200"
+            title="Edit User Profile & Notification Settings"
+          >
+            <div className="w-5 h-5 rounded-full bg-sky-600 text-white font-bold flex items-center justify-center text-[10px]">
+              {userInitial}
+            </div>
+            <span className="font-semibold hidden sm:inline truncate max-w-[100px]">
+              {userName}
+            </span>
+            <Settings className="h-3 w-3 text-slate-400" />
+          </button>
+
           {/* Notification Bell */}
           <div className="relative" ref={flyoutRef}>
             <button 
@@ -157,13 +174,12 @@ export default function Topbar({ title, onMenuClick }: TopbarProps) {
                     }}
                     className="btn-secondary text-[11px] py-1 px-2"
                   >
-                    <Mail className="h-3 w-3" /> Email Alerts
+                    <Mail className="h-3 w-3" /> Profile & Alerts
                   </button>
                 </div>
 
                 {/* Notification Items List */}
                 {notifications.length === 0 ? (
-                  /* Empty State */
                   <div className="py-8 px-2 text-center flex flex-col items-center justify-center gap-2">
                     <div className="p-2 bg-emerald-600 text-white rounded-md">
                       <CheckCircle2 className="h-5 w-5" />

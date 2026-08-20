@@ -42,9 +42,12 @@ interface GuidedScenario {
   payload: string;
 }
 
+import { useUser } from '../context/UserContext';
+
 export default function ChaosPage() {
   const navigate = useNavigate();
   const { showToast } = useNotifications();
+  const { userName } = useUser();
   const [runningScenario, setRunningScenario] = useState<string | null>(null);
   const [chaosLog, setChaosLog] = useState<{ id: number; text: string; time: string; type: string }[]>([
     { id: 1, text: 'Chaos Engine initialized. Safety guardrails connected to EKS.', time: '09:00:00', type: 'info' }
@@ -158,7 +161,7 @@ export default function ChaosPage() {
       const res = await fetchApi('/api/chaos/inject', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario: gs.payload, initiator: 'Reviewer (Guided Showcase)' })
+        body: JSON.stringify({ scenario: gs.payload, initiator: `${userName} (Guided Showcase)` })
       });
 
       if (res.ok) {
@@ -181,7 +184,7 @@ export default function ChaosPage() {
     const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     
     setChaosLog(prev => [
-      { id: Date.now(), text: `🔥 INJECTING FAULT: ${scenario.name} on ${scenario.targetApp} (Triggered by: Ray Woo)`, time: nowStr, type: 'trigger' },
+      { id: Date.now(), text: `🔥 INJECTING FAULT: ${scenario.name} on ${scenario.targetApp} (Triggered by: ${userName})`, time: nowStr, type: 'trigger' },
       ...prev
     ]);
     showToast('warning', `Injecting fault: ${scenario.name}...`);
@@ -190,7 +193,7 @@ export default function ChaosPage() {
       const res = await fetchApi('/api/chaos/inject', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario: scenario.payload, initiator: 'Ray Woo (Chaos Lab)' })
+        body: JSON.stringify({ scenario: scenario.payload, initiator: `${userName} (Chaos Lab)` })
       });
 
       if (res.ok) {

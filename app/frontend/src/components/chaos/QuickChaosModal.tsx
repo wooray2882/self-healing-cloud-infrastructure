@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { fetchApi } from '../../api/client';
 import { useNotifications } from '../../context/NotificationContext';
+import { useUser } from '../../context/UserContext';
 
 interface QuickChaosModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ interface QuickChaosModalProps {
 export default function QuickChaosModal({ isOpen, onClose }: QuickChaosModalProps) {
   const navigate = useNavigate();
   const { showToast } = useNotifications();
+  const { userName } = useUser();
   const [runningScenario, setRunningScenario] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'guided' | 'manual'>('guided');
 
@@ -117,7 +119,7 @@ export default function QuickChaosModal({ isOpen, onClose }: QuickChaosModalProp
       const res = await fetchApi('/api/chaos/inject', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario: payload, initiator: 'Reviewer (Quick Chaos Modal)' })
+        body: JSON.stringify({ scenario: payload, initiator: `${userName} (Quick Chaos Modal)` })
       });
 
       if (res.ok) {

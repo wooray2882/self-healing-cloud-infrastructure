@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Mail, 
@@ -10,10 +10,11 @@ import {
   CheckCircle2, 
   Radio, 
   AlertCircle,
-  Clock,
-  Smartphone
+  Smartphone,
+  User
 } from 'lucide-react';
 import { fetchApi } from '../api/client';
+import { useUser } from '../context/UserContext';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -21,20 +22,30 @@ interface SubscriptionModalProps {
 }
 
 const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }) => {
-  const [email, setEmail] = useState('');
+  const { userName, userEmail, updateProfile } = useUser();
+  const [name, setName] = useState(userName);
+  const [email, setEmail] = useState(userEmail);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    setName(userName);
+    setEmail(userEmail);
+  }, [userName, userEmail]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('loading');
     setErrorMessage('');
 
+    // Save personalized profile name & email to context + localStorage
+    updateProfile(name, email);
+
     try {
       const res = await fetchApi('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ protocol: 'email', endpoint: email }),
+        body: JSON.stringify({ protocol: 'email', endpoint: email, userName: name }),
       });
 
       if (!res.ok) {
@@ -44,12 +55,10 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
 
       setStatus('success');
       
-      // Auto close after 4.5 seconds
       setTimeout(() => {
         setStatus('idle');
-        setEmail('');
         onClose();
-      }, 4500);
+      }, 4000);
       
     } catch (error: any) {
       console.error(error);
@@ -76,7 +85,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
             {/* Header Badge */}
             <div className="flex items-center justify-between mb-3">
               <span className="px-2 py-0.5 bg-sky-500/10 text-sky-300 border border-sky-500/20 rounded text-[11px] font-semibold flex items-center gap-1">
-                <Sparkles className="h-3 w-3 text-sky-400" /> Interactive SRE Alerting
+                <Sparkles className="h-3 w-3 text-sky-400" /> Personalize & Alerting Settings
               </span>
               <button 
                 onClick={onClose} 
@@ -94,44 +103,41 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
               </div>
               <div>
                 <h2 className="text-sm font-semibold text-white tracking-tight">
-                  Connect Live Email Alerts
+                  User Profile & Live Alert Settings
                 </h2>
                 <p className="text-[11px] text-slate-400">
-                  Receive real-time 2-phase AWS SNS notifications directly to your inbox
+                  Personalize the platform with your SRE handle and connect live AWS SNS email alerts
                 </p>
               </div>
             </div>
 
-            {/* What you will experience */}
-            <div className="my-3 bg-slate-950/60 border border-slate-800/80 rounded-md p-3 space-y-2">
-              <div className="text-[11px] font-medium text-slate-300 flex items-center gap-1.5">
-                <Mail className="h-3 w-3 text-sky-400" /> What you will receive:
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                <div className="bg-slate-900/80 p-2.5 rounded-md border border-slate-800/60">
-                  <span className="font-semibold text-amber-300 flex items-center gap-1 text-[11px]">
-                    <Clock className="h-3 w-3" /> Phase 1: Triage Alert
-                  </span>
-                  <p className="text-slate-400 mt-1 leading-relaxed text-[10px]">
-                    Instant alert when Prometheus catches an anomaly, with Incident ID, root cause, and timestamps.
-                  </p>
-                </div>
-                <div className="bg-slate-900/80 p-2.5 rounded-md border border-slate-800/60">
-                  <span className="font-semibold text-emerald-300 flex items-center gap-1 text-[11px]">
-                    <ShieldCheck className="h-3 w-3" /> Phase 2: MTTR Resolution
-                  </span>
-                  <p className="text-slate-400 mt-1 leading-relaxed text-[10px]">
-                    Follow-up report when Bedrock AI executes remediation with exact MTTR duration (e.g. 4.2s).
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* Subscription Form */}
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-3 mt-3">
+              {/* User Full Name Input */}
               <div>
                 <label className="block mb-1 text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
-                  Email Address
+                  Your Full Name / SRE Handle
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                  <input
+                    type="text"
+                    placeholder="Ray Woo"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="w-full pl-9 pr-3 py-2 text-xs text-white transition-all bg-slate-950 border rounded-md border-slate-700 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 placeholder:text-slate-600 font-medium"
+                  />
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  The Bedrock AI Assistant, Chaos Engine, and SRE logs will address you personally as <strong>{name || 'Ray Woo'}</strong>.
+                </span>
+              </div>
+
+              {/* Email Address Input */}
+              <div>
+                <label className="block mb-1 text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
+                  Email Address for SNS Alerts
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
@@ -141,11 +147,11 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full pl-9 pr-3 py-2 text-xs text-white transition-all bg-slate-950 border rounded-md border-slate-700 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 placeholder:text-slate-600"
+                    className="w-full pl-9 pr-3 py-2 text-xs text-white transition-all bg-slate-950 border rounded-md border-slate-700 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 placeholder:text-slate-600 font-medium"
                   />
                 </div>
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  AWS SNS will send a confirmation email. Click <strong>Confirm subscription</strong> to activate.
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  AWS SNS sends real-time incident reports directly to your inbox.
                 </span>
               </div>
 
@@ -153,7 +159,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
               <div className="bg-slate-950/40 border border-slate-800/80 rounded-md p-2.5 flex items-start gap-2">
                 <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
                 <div className="text-[10px] text-slate-400 leading-relaxed">
-                  <strong className="text-slate-300 font-medium">Privacy Guarantee:</strong> Used exclusively for this live incident demo during your session. Zero spam, zero marketing, 1-click unsubscribe.
+                  <strong className="text-slate-300 font-medium">Privacy Guarantee:</strong> Profile name and email are stored locally in your browser for this session. Zero spam, zero marketing.
                 </div>
               </div>
 
@@ -168,11 +174,11 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
                     <div className="w-3.5 h-3.5 border-2 border-white rounded-full border-t-transparent animate-spin" />
                   ) : status === 'success' ? (
                     <>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" /> Confirmation Sent!
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" /> Profile & Alerts Saved!
                     </>
                   ) : (
                     <>
-                      <Send className="w-3 h-3" /> Enable Live Email Alerts
+                      <Send className="w-3 h-3" /> Save Profile & Enable Alerts
                     </>
                   )}
                 </button>
@@ -182,7 +188,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
                   onClick={onClose}
                   className="btn-secondary text-xs py-2"
                 >
-                  Explore First
+                  Close
                 </button>
               </div>
             </form>
@@ -196,7 +202,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
               >
                 <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-400" />
                 <span className="text-[11px]">
-                  Success! Check your inbox for the AWS SNS confirmation email, click <strong>Confirm</strong>, then test a fault in the <strong>Chaos Lab</strong>!
+                  Welcome <strong>{name}</strong>! Profile updated and AWS SNS confirmation email requested for <strong>{email}</strong>.
                 </span>
               </motion.div>
             )}

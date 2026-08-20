@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bot, Send, Sparkles, Terminal, ShieldCheck } from 'lucide-react';
+import { useUser } from '../context/UserContext';
 
 interface Message {
   id: string;
@@ -9,17 +10,22 @@ interface Message {
 }
 
 export default function AIAssistantPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      sender: 'ai',
-      text: 'Hello! I am your Amazon Bedrock-powered HealOps Autonomous Infrastructure Assistant. I am actively monitoring your EKS cluster nodes, pod health probes, and Prometheus alert streams. How can I assist your SRE operations today?',
-      timestamp: 'Just now'
-    }
-  ]);
+  const { userName } = useUser();
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMessages([
+      {
+        id: '1',
+        sender: 'ai',
+        text: `Hello ${userName}! I am your Amazon Bedrock-powered HealOps Autonomous Infrastructure Assistant. I am actively monitoring your EKS cluster nodes, pod health probes, and Prometheus alert streams for you. How can I assist your SRE operations today?`,
+        timestamp: 'Just now'
+      }
+    ]);
+  }, [userName]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -45,14 +51,13 @@ export default function AIAssistantPage() {
     setInput('');
     setIsTyping(true);
 
-    // Simulate Bedrock Agent reasoning
     setTimeout(() => {
-      let aiResponseText = `[AI Root-Cause Diagnostic]: Querying EKS cluster nodes and Prometheus metrics... All 2 EC2 worker nodes are reporting Ready. No unhandled CrashLoops detected. Autonomous safety guardrails are fully active.`;
+      let aiResponseText = `[AI Diagnostic for ${userName}]: Querying EKS cluster nodes and Prometheus metrics... All 2 EC2 worker nodes are reporting Ready. No unhandled CrashLoops detected. Autonomous safety guardrails are fully active.`;
       
       if (query.toLowerCase().includes('status') || query.toLowerCase().includes('health')) {
-        aiResponseText = `[Cluster Health Assessment]: Overall score is 96/100. 2/2 worker nodes are healthy (us-east-1a, us-east-1b). 16 container workloads active across default and monitoring namespaces.`;
+        aiResponseText = `[Cluster Health Assessment for ${userName}]: Overall health score is 98.5/100. 2/2 worker nodes are healthy (us-east-1a, us-east-1b). 6 container workloads active across default namespace. Zero unhandled alerts.`;
       } else if (query.toLowerCase().includes('chaos') || query.toLowerCase().includes('remediate')) {
-        aiResponseText = `[Remediation Runbook Ready]: 4 auto-recovery playbooks loaded (Pod CrashLoop, Memory Pressure, CPU Saturation, Network Loss). Ingesting Alertmanager webhooks with 4.2s average MTTR.`;
+        aiResponseText = `[Remediation Runbook Ready]: 4 auto-recovery playbooks loaded (Pod CrashLoop, Memory Pressure, CPU Saturation, Network Loss). Ingesting Alertmanager webhooks with sub-second MTTR.`;
       }
 
       const aiMessage: Message = {
@@ -68,102 +73,85 @@ export default function AIAssistantPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-4 max-w-4xl mx-auto">
+      {/* Page Header */}
+      <div className="flex items-center justify-between pb-1 border-b border-slate-800/60">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
-            <Bot className="h-7 w-7 text-cyan-400" />
-            AI Operations & Diagnostic Terminal
+          <h1 className="text-base sm:text-lg font-semibold tracking-tight text-white flex items-center gap-2">
+            <Bot className="h-4.5 w-4.5 text-sky-400" />
+            AI Autonomous SRE Assistant
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Direct conversational interface to Amazon Bedrock AI Agents and Kubernetes control plane
+          <p className="text-xs text-slate-400 mt-0.5">
+            Natural-language Bedrock AI cluster diagnostics & automated runbook execution personalized for <strong>{userName}</strong>
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 rounded-full text-xs font-semibold flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5 text-cyan-400" /> Bedrock Claude 3.5
-          </span>
-          <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 rounded-full text-xs font-semibold flex items-center gap-1.5">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> Guardrails Active
-          </span>
-        </div>
+        <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 rounded text-[11px] font-semibold flex items-center gap-1">
+          <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+          Claude 3 Haiku Active
+        </span>
       </div>
 
-      {/* Main Terminal Chat Window */}
-      <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[600px]">
-        {/* Terminal Titlebar */}
-        <div className="px-4 py-3 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-mono text-xs text-slate-400">
-            <Terminal className="h-4 w-4 text-cyan-400" />
-            healops-agent://bedrock.us-east-1.amazonaws.com
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="text-[11px] text-emerald-400 font-mono">ONLINE</span>
-          </div>
-        </div>
-
-        {/* Message Feed */}
-        <div className="flex-1 p-5 overflow-y-auto space-y-4 font-sans">
+      {/* Chat Container Panel */}
+      <div className="card-panel flex flex-col h-[650px] overflow-hidden p-0">
+        {/* Messages Body */}
+        <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-950/40">
           {messages.map(msg => (
             <div
               key={msg.id}
-              className={`flex items-start gap-3 ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+              className={`flex items-start gap-3 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}
             >
-              <div className={`p-2 rounded-xl shrink-0 ${
-                msg.sender === 'user' 
-                  ? 'bg-indigo-600 text-white' 
-                  : 'bg-cyan-500/20 border border-cyan-500/30 text-cyan-400'
+              <div className={`p-2 rounded-md shrink-0 font-bold text-xs ${
+                msg.sender === 'user'
+                  ? 'bg-sky-600 text-white'
+                  : 'bg-purple-600/20 border border-purple-500/30 text-purple-300'
               }`}>
-                {msg.sender === 'user' ? <Terminal className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                {msg.sender === 'user' ? (userName ? userName.charAt(0).toUpperCase() : 'U') : <Bot className="h-4 w-4" />}
               </div>
 
-              <div className={`max-w-xl rounded-2xl p-4 text-xs leading-relaxed ${
+              <div className={`max-w-xl rounded-md p-3 text-xs leading-relaxed ${
                 msg.sender === 'user'
-                  ? 'bg-indigo-600 text-white shadow-lg'
-                  : 'bg-slate-950/80 border border-slate-800 text-slate-200 shadow-md font-mono'
+                  ? 'bg-sky-600 text-white shadow-md'
+                  : 'bg-slate-900 border border-slate-800 text-slate-200'
               }`}>
-                <div className="flex justify-between items-center mb-1 text-[10px] text-slate-400 font-sans">
-                  <span>{msg.sender === 'user' ? 'SRE Operator' : 'HealOps AI Agent'}</span>
+                <div className="flex items-center justify-between gap-2 mb-1 opacity-75 text-[10px]">
+                  <span className="font-semibold">{msg.sender === 'user' ? userName : 'Bedrock AI SRE'}</span>
                   <span>{msg.timestamp}</span>
                 </div>
-                <div className="whitespace-pre-wrap">{msg.text}</div>
+                <p className="font-sans whitespace-pre-wrap">{msg.text}</p>
               </div>
             </div>
           ))}
 
           {isTyping && (
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-400">
-                <Bot className="h-4 w-4 animate-bounce" />
-              </div>
-              <div className="bg-slate-950/80 border border-slate-800 text-slate-400 px-4 py-3 rounded-2xl text-xs font-mono flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                <span>Bedrock Agent reasoning across Kubernetes telemetry...</span>
-              </div>
+            <div className="flex items-center gap-2 text-slate-400 text-xs italic p-2 bg-slate-900/60 rounded border border-slate-800/80 w-fit">
+              <Sparkles className="h-3.5 w-3.5 text-purple-400 animate-spin" />
+              <span>Amazon Bedrock analyzing cluster telemetry for {userName}...</span>
             </div>
           )}
+
           <div ref={messagesEndRef} />
         </div>
 
         {/* Input Bar */}
-        <form onSubmit={handleSend} className="p-4 bg-slate-950/60 border-t border-slate-800 flex items-center gap-3">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask AI about cluster status, pods at risk, or execute runbook commands..."
-            className="flex-1 px-4 py-3 bg-slate-900/80 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors font-mono"
-          />
+        <form onSubmit={handleSend} className="p-3 bg-slate-900 border-t border-slate-800 flex items-center gap-2">
+          <div className="relative flex-1">
+            <Terminal className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+            <input
+              type="text"
+              placeholder={`Ask Bedrock AI SRE assistant about cluster status, runbooks, or chaos...`}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-xs text-white transition-all bg-slate-950 border rounded-md border-slate-700 focus:outline-none focus:border-sky-500"
+            />
+          </div>
+
           <button
             type="submit"
             disabled={!input.trim() || isTyping}
-            className="px-4 py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl text-xs transition-all shadow-md shadow-cyan-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="btn-primary text-xs py-2 px-4"
           >
-            <Send className="h-4 w-4" />
-            Send
+            <Send className="h-3.5 w-3.5" /> Send
           </button>
         </form>
       </div>
