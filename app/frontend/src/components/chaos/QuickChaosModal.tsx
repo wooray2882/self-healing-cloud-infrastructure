@@ -8,11 +8,15 @@ import {
   WifiOff, 
   X, 
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  Sparkles,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Send
 } from 'lucide-react';
 import { fetchApi } from '../../api/client';
 import { useNotifications } from '../../context/NotificationContext';
-import type { NotificationItem } from '../../context/NotificationContext';
 
 interface QuickChaosModalProps {
   isOpen: boolean;
@@ -21,20 +25,59 @@ interface QuickChaosModalProps {
 
 export default function QuickChaosModal({ isOpen, onClose }: QuickChaosModalProps) {
   const navigate = useNavigate();
-  const { showToast, addNotification } = useNotifications();
+  const { showToast } = useNotifications();
   const [runningScenario, setRunningScenario] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'guided' | 'manual'>('guided');
 
   if (!isOpen) return null;
 
-  const scenarios = [
+  const guidedScenarios = [
+    {
+      id: 'guided_auto_healed',
+      name: '1. Crash Loop — Auto-Healed',
+      icon: CheckCircle2,
+      color: 'text-emerald-400',
+      badge: 'High Confidence (94%)',
+      description: 'Routine pod crash. Confidence (94% >= 85%) triggers clean automated self-healing.',
+      payload: 'guided_auto_healed'
+    },
+    {
+      id: 'guided_circuit_breaker',
+      name: '2. Crash Loop — Circuit Breaker',
+      icon: AlertTriangle,
+      color: 'text-rose-400',
+      badge: 'Circuit Breaker',
+      description: 'Simulates 3 failed attempts in 15 mins. Auto-healing stops and escalates to human.',
+      payload: 'guided_circuit_breaker'
+    },
+    {
+      id: 'guided_low_confidence',
+      name: '3. Low-Confidence Anomaly',
+      icon: Clock,
+      color: 'text-amber-400',
+      badge: '<85% Confidence',
+      description: 'Ambiguous anomaly (74%). Lands in pending_approval with Bedrock reasoning & Approve buttons.',
+      payload: 'guided_low_confidence'
+    },
+    {
+      id: 'guided_notification_walkthrough',
+      name: '4. Notification Walkthrough',
+      icon: Send,
+      color: 'text-purple-400',
+      badge: 'Bedrock SNS',
+      description: 'Bedrock 4-sentence plain-English summary dispatched to SNS email + Socket.io toast.',
+      payload: 'guided_notification_walkthrough'
+    }
+  ];
+
+  const manualScenarios = [
     {
       id: 'cpu_spike',
       name: 'CPU Exhaustion Lock',
       icon: Cpu,
       color: 'text-amber-400',
-      badge: 'Compute Saturation',
+      badge: 'Compute Load',
       description: 'Simulates 100% CPU lock on healops-backend. Triggers Prometheus alert & Bedrock AI auto-scale.',
-      target: 'deployment/healops-backend',
       payload: 'cpu_spike'
     },
     {
@@ -44,7 +87,6 @@ export default function QuickChaosModal({ isOpen, onClose }: QuickChaosModalProp
       color: 'text-rose-400',
       badge: 'Pod Death',
       description: 'Force-terminates active pod replica. Proves zero-downtime Kubernetes self-healing.',
-      target: 'pod/healops-backend-*',
       payload: 'pod_kill'
     },
     {
@@ -54,7 +96,6 @@ export default function QuickChaosModal({ isOpen, onClose }: QuickChaosModalProp
       color: 'text-sky-400',
       badge: 'CGroup Limit',
       description: 'Consumes memory to 85% threshold. Validates Alertmanager webhook ingestion before OOMKill.',
-      target: 'cgroup/memory',
       payload: 'memory_pressure'
     },
     {
@@ -64,44 +105,26 @@ export default function QuickChaosModal({ isOpen, onClose }: QuickChaosModalProp
       color: 'text-purple-400',
       badge: 'Endpoint Drift',
       description: 'Injects 400ms roundtrip delay to test readiness probe traffic rerouting.',
-      target: 'svc/healops-frontend-svc',
       payload: 'network_loss'
     }
   ];
 
-  const handleInject = async (scenario: typeof scenarios[0]) => {
-    setRunningScenario(scenario.id);
-    showToast('warning', `🔥 Injecting Fault: ${scenario.name}...`);
+  const handleInject = async (payload: string, name: string) => {
+    setRunningScenario(payload);
+    showToast('info', `Running: ${name}...`);
 
     try {
       const res = await fetchApi('/api/chaos/inject', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario: scenario.payload, initiator: 'Ray Woo (Quick Chaos Topbar)' })
+        body: JSON.stringify({ scenario: payload, initiator: 'Reviewer (Quick Chaos Modal)' })
       });
 
       if (res.ok) {
-        const json = await res.json();
-        const incId = json.incidentId || 'INC-' + Math.floor(1000 + Math.random() * 9000);
-
-        const newIncident: NotificationItem = {
-          id: incId.toLowerCase(),
-          type: 'incident',
-          severity: 'critical',
-          title: `Incident ${incId} (${scenario.name})`,
-          summary: `Fault injected on ${scenario.target}. Prometheus Alertmanager firing into Bedrock AI remediation engine.`,
-          target: scenario.target,
-          remediationAction: 'SCALE_UP / RESTART (Autonomous)',
-          mttr: '4.2s',
-          time: 'Just now',
-          link: '/self-healing'
-        };
-
-        addNotification(newIncident);
-        showToast('error', `🚨 [${incId}] Firing: ${scenario.name} active on cluster!`);
+        showToast('success', `✓ ${name} executed! Check /incidents page for details.`);
       }
     } catch (err: any) {
-      showToast('error', `Fault injection failed: ${err.message || 'Network error'}`);
+      showToast('error', `Execution failed: ${err.message || 'Network error'}`);
     } finally {
       setRunningScenario(null);
     }
@@ -123,13 +146,13 @@ export default function QuickChaosModal({ isOpen, onClose }: QuickChaosModalProp
             </div>
             <div>
               <h2 className="text-sm font-semibold text-white tracking-tight flex items-center gap-2">
-                Quick Chaos Fault Injection
-                <span className="bg-rose-600 text-white text-[9px] font-bold uppercase px-1.5 py-0.2 rounded">
-                  Live Action
+                Chaos & Guided Showcase Suite
+                <span className="bg-purple-600 text-white text-[9px] font-bold uppercase px-1.5 py-0.2 rounded">
+                  Demo Ready
                 </span>
               </h2>
               <p className="text-[11px] text-slate-400">
-                Trigger real-time Prometheus anomalies and Bedrock AI self-healing
+                1-Click reviewer demonstrations & Kubernetes fault injection
               </p>
             </div>
           </div>
@@ -142,20 +165,40 @@ export default function QuickChaosModal({ isOpen, onClose }: QuickChaosModalProp
           </button>
         </div>
 
+        {/* Tab Toggle */}
+        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-md border border-slate-800 text-xs">
+          <button
+            onClick={() => setActiveTab('guided')}
+            className={`flex-1 py-1 px-3 rounded font-medium transition-colors flex items-center justify-center gap-1.5 ${
+              activeTab === 'guided' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Sparkles className="h-3.5 w-3.5" /> Guided Showcase
+          </button>
+          <button
+            onClick={() => setActiveTab('manual')}
+            className={`flex-1 py-1 px-3 rounded font-medium transition-colors flex items-center justify-center gap-1.5 ${
+              activeTab === 'manual' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Flame className="h-3.5 w-3.5 text-rose-400" /> Manual Fault Injection
+          </button>
+        </div>
+
         {/* Safety Note */}
         <div className="bg-slate-950/60 border border-slate-800/80 rounded-md p-2.5 flex items-center justify-between text-xs text-slate-400">
           <div className="flex items-center gap-2 text-[11px]">
             <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
-            <span>Safety Guardrails: Amazon Bedrock AI actively enforces cluster auto-recovery.</span>
+            <span>Safety Guardrails: Amazon Bedrock AI actively enforces policy guardrails.</span>
           </div>
           <span className="text-[10px] text-emerald-400 font-mono font-semibold">GUARDRAILS ON</span>
         </div>
 
         {/* Scenarios Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {scenarios.map((sc) => {
+          {(activeTab === 'guided' ? guidedScenarios : manualScenarios).map((sc) => {
             const Icon = sc.icon;
-            const isRunning = runningScenario === sc.id;
+            const isRunning = runningScenario === sc.payload;
             return (
               <div 
                 key={sc.id}
@@ -178,16 +221,15 @@ export default function QuickChaosModal({ isOpen, onClose }: QuickChaosModalProp
 
                 <div className="pt-2.5 mt-2 border-t border-slate-800/80 flex items-center justify-between">
                   <span className="text-[9px] font-mono text-slate-500 truncate max-w-[120px]">
-                    {sc.target}
+                    {sc.payload}
                   </span>
 
                   <button
-                    onClick={() => handleInject(sc)}
+                    onClick={() => handleInject(sc.payload, sc.name)}
                     disabled={isRunning}
-                    className="btn-danger text-[10px] py-1 px-2 shrink-0"
+                    className={activeTab === 'guided' ? 'btn-primary text-[10px] py-1 px-2 shrink-0 bg-purple-600 hover:bg-purple-500' : 'btn-danger text-[10px] py-1 px-2 shrink-0'}
                   >
-                    <Flame className={`h-3 w-3 ${isRunning ? 'animate-spin' : ''}`} />
-                    {isRunning ? 'Injecting...' : 'Inject Fault'}
+                    {isRunning ? 'Running...' : 'Run Scenario'}
                   </button>
                 </div>
               </div>

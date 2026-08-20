@@ -1,8 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { io } from '../server';
 import { inMemoryHealingEvents, inMemoryIncidentAudits, executeRemediation, IncidentAuditRecord } from '../services/kubernetes';
-import { analyzeAlertAndDecideAction } from '../services/bedrock';
-import { sendTriageNotification, sendResolutionNotification } from '../services/sns';
+import { analyzeAlertAndDecideAction, generateHumanSummary } from '../services/bedrock';
+import { sendTriageNotification, sendResolutionNotification, sendFormattedNotification } from '../services/sns';
+import { createIncident } from '../services/incidents';
 
 export const chaosRouter = Router();
 
@@ -15,6 +16,152 @@ chaosRouter.post('/inject', async (req: Request, res: Response) => {
 
   console.log(`[Chaos Engine] User triggered chaos injection: ${scenario} (${incidentId})`);
   
+  // Guided Showcase Scenarios (Section 5)
+  if (scenario === 'guided_auto_healed') {
+    const targetApp = 'healops-backend';
+    const alertName = 'PodCrashLoopBackOff';
+
+    const humanSummary = await generateHumanSummary({
+      anomaly: alertName,
+      target: targetApp,
+      proposedAction: 'RESTART_POD',
+      confidence: 94,
+      reasoning: 'High-confidence automated recovery. Container restarted cleanly and HTTP health probes passed.',
+      status: 'remediated'
+    });
+
+    const incident = createIncident({
+      title: `${targetApp}: ${alertName} (Auto-Healed Showcase)`,
+      targetResource: targetApp,
+      confidence: 94,
+      reasoning: 'Confidence score (94%) exceeds safety threshold. Baseline self-healing loop executed.',
+      proposedAction: 'RESTART_POD',
+      status: 'remediated',
+      humanSummary,
+      attempts: [{ timestamp: new Date().toISOString(), action: 'RESTART_POD', outcome: 'success' }]
+    });
+
+    await sendFormattedNotification(humanSummary, incident.id, 'REMEDIATED');
+
+    return res.status(200).json({
+      success: true,
+      incidentId: incident.id,
+      message: 'Guided Showcase 1: Crash Loop Auto-Healed executed cleanly.',
+      incident
+    });
+  }
+
+  if (scenario === 'guided_circuit_breaker') {
+    const targetApp = 'payment-service';
+
+    const humanSummary = await generateHumanSummary({
+      anomaly: 'Repeated Pod CrashLoopBackOff',
+      target: targetApp,
+      proposedAction: 'ESCALATE_TO_HUMAN',
+      confidence: 95,
+      reasoning: 'Target resource failed 3 consecutive remediation attempts in 15 minutes. Circuit breaker tripped.',
+      status: 'escalated',
+      attemptsCount: 3
+    });
+
+    const incident = createIncident({
+      title: `Circuit Breaker Tripped: ${targetApp}`,
+      targetResource: targetApp,
+      confidence: 95,
+      reasoning: 'Resource failed 3 consecutive auto-remediation restart attempts within a 15-minute window. Auto-remediation stopped.',
+      proposedAction: 'ESCALATE_TO_HUMAN',
+      status: 'escalated',
+      humanSummary,
+      attempts: [
+        { timestamp: new Date(Date.now() - 1000 * 60 * 12).toISOString(), action: 'RESTART_POD', outcome: 'failed' },
+        { timestamp: new Date(Date.now() - 1000 * 60 * 8).toISOString(), action: 'RESTART_POD', outcome: 'failed' },
+        { timestamp: new Date(Date.now() - 1000 * 60 * 2).toISOString(), action: 'RESTART_POD', outcome: 'failed' }
+      ]
+    });
+
+    await sendFormattedNotification(humanSummary, incident.id, 'CIRCUIT_BREAKER_ESCALATED');
+
+    return res.status(200).json({
+      success: true,
+      incidentId: incident.id,
+      message: 'Guided Showcase 2: Circuit Breaker Repeated Failure executed.',
+      incident
+    });
+  }
+
+  if (scenario === 'guided_low_confidence') {
+    const targetApp = 'database-service';
+    const anomaly = 'Ambiguous Connection Pool Exhaustion';
+
+    const humanSummary = await generateHumanSummary({
+      anomaly,
+      target: targetApp,
+      proposedAction: 'RESTART_POD',
+      confidence: 74,
+      reasoning: 'Confidence score (74%) is below 85% safety threshold. Proposed pod restart requires human approval to prevent dropping live transactions.',
+      status: 'pending_approval'
+    });
+
+    const incident = createIncident({
+      title: `${targetApp}: ${anomaly}`,
+      targetResource: targetApp,
+      confidence: 74,
+      reasoning: 'Confidence score (74%) is below 85% threshold. Manual approval required before executing Kubernetes pod restart.',
+      proposedAction: 'RESTART_POD',
+      status: 'pending_approval',
+      humanSummary
+    });
+
+    await sendFormattedNotification(humanSummary, incident.id, 'PENDING_APPROVAL');
+
+    return res.status(200).json({
+      success: true,
+      incidentId: incident.id,
+      message: 'Guided Showcase 3: Low-Confidence Anomaly created.',
+      incident
+    });
+  }
+
+  if (scenario === 'guided_notification_walkthrough') {
+    const targetApp = 'auth-service';
+    const anomaly = 'High Token Verification Latency';
+
+    const humanSummary = await generateHumanSummary({
+      anomaly,
+      target: targetApp,
+      proposedAction: 'RESTART_POD',
+      confidence: 78,
+      reasoning: 'Bedrock generated plain-English 4-sentence summary for dual SNS email + Socket.io notification walkthrough.',
+      status: 'pending_approval'
+    });
+
+    const incident = createIncident({
+      title: `Notification Walkthrough: ${targetApp}`,
+      targetResource: targetApp,
+      confidence: 78,
+      reasoning: 'Demonstrates real-time Bedrock summary formatting and SNS notification dispatch.',
+      proposedAction: 'RESTART_POD',
+      status: 'pending_approval',
+      humanSummary
+    });
+
+    await sendFormattedNotification(humanSummary, incident.id, 'PENDING_APPROVAL');
+
+    io.emit('notification_toast', {
+      title: '📲 SNS Email & Bedrock Notification Walkthrough',
+      message: humanSummary,
+      incidentId: incident.id
+    });
+
+    return res.status(200).json({
+      success: true,
+      incidentId: incident.id,
+      message: 'Guided Showcase 4: Notification Walkthrough triggered.',
+      incident
+    });
+  }
+
+  // Raw Manual Fault Injection Scenarios (Preserved)
   let alertName = 'HighCPUUsage';
   let alertTitle = 'CPU Exhaustion & Thread Lock Anomaly';
   let alertSummary = 'Simulated 100% CPU thread lock on healops-backend';
@@ -35,7 +182,6 @@ chaosRouter.post('/inject', async (req: Request, res: Response) => {
     targetApp = 'healops-frontend-svc';
   }
 
-  // 1. Create Incident Audit Record in Investigating state
   const incidentRecord: IncidentAuditRecord = {
     id: incidentId,
     title: alertTitle,
@@ -52,7 +198,6 @@ chaosRouter.post('/inject', async (req: Request, res: Response) => {
 
   inMemoryIncidentAudits.unshift(incidentRecord);
 
-  // 2. Record in live healing events stream
   inMemoryHealingEvents.unshift({
     id: startTimestampMs,
     action: `[${incidentId}] Anomaly Detected: ${alertName}`,
@@ -63,7 +208,6 @@ chaosRouter.post('/inject', async (req: Request, res: Response) => {
     details: `Triggered by ${initiator} at ${new Date(startTimestampMs).toLocaleTimeString()}`
   });
 
-  // 3. Emit Phase 1 Triage WebSocket event to all connected dashboard clients
   io.emit('healing-event', {
     type: 'INCIDENT_TRIAGE_STARTED',
     incidentId,
@@ -74,7 +218,6 @@ chaosRouter.post('/inject', async (req: Request, res: Response) => {
     timestamp: isoTriggeredAt
   });
 
-  // 4. Dispatch Phase 1 SNS Notification (Incident Acknowledged & Triage Started)
   sendTriageNotification({
     id: incidentId,
     title: alertTitle,
@@ -84,7 +227,6 @@ chaosRouter.post('/inject', async (req: Request, res: Response) => {
     initiatedBy: initiator
   }).catch(err => console.error('[SNS Phase 1] Dispatch error:', err));
 
-  // 5. Return 200 OK immediately with Incident ID and detection timestamp
   res.status(200).json({ 
     success: true, 
     incidentId,
@@ -94,7 +236,6 @@ chaosRouter.post('/inject', async (req: Request, res: Response) => {
     triggeredAt: isoTriggeredAt
   });
 
-  // 6. Trigger AI Self-Healing loop asynchronously
   setTimeout(async () => {
     try {
       const triageTimestampMs = Date.now();
@@ -102,8 +243,6 @@ chaosRouter.post('/inject', async (req: Request, res: Response) => {
       incidentRecord.triagedAt = new Date(triageTimestampMs).toISOString();
       incidentRecord.status = 'REMEDIATING';
 
-      console.log(`[Chaos Engine] AI Analysis running for ${incidentId} (+${triageElapsedSec}s)...`);
-      
       const mockAlertPayload = {
         alerts: [
           {
@@ -121,14 +260,11 @@ chaosRouter.post('/inject', async (req: Request, res: Response) => {
         ]
       };
 
-      // 1. Analyze with Bedrock AI
       const aiDecision = await analyzeAlertAndDecideAction(mockAlertPayload);
       incidentRecord.actionTaken = aiDecision.machine_action;
       
-      // 2. Execute machine action safely
       const remediationResult = await executeRemediation(aiDecision.machine_action, targetApp);
 
-      // 3. Compute resolution time and exact MTTR
       const resolvedTimestampMs = Date.now();
       const totalMttrSec = parseFloat(((resolvedTimestampMs - startTimestampMs) / 1000).toFixed(1));
       const isoResolvedAt = new Date(resolvedTimestampMs).toISOString();
@@ -139,7 +275,6 @@ chaosRouter.post('/inject', async (req: Request, res: Response) => {
       incidentRecord.details = aiDecision.human_message;
       incidentRecord.verification = 'HTTP 200 health probe verified across all replicas';
 
-      // 4. Update Healing Events stream
       inMemoryHealingEvents.unshift({
         id: resolvedTimestampMs,
         action: `[${incidentId}] AI Healing: ${aiDecision.machine_action}`,
@@ -150,7 +285,6 @@ chaosRouter.post('/inject', async (req: Request, res: Response) => {
         details: `${aiDecision.human_message} (MTTR: ${totalMttrSec}s)`
       });
 
-      // 5. Emit Phase 2 Resolution WebSocket event
       io.emit('healing-event', {
         type: 'INCIDENT_RESOLVED',
         incidentId,
@@ -161,7 +295,6 @@ chaosRouter.post('/inject', async (req: Request, res: Response) => {
         timestamp: isoResolvedAt
       });
 
-      // 6. Dispatch Phase 2 SNS Notification (Incident Remediated & MTTR Report)
       sendResolutionNotification({
         id: incidentId,
         title: alertTitle,
