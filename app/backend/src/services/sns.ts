@@ -1,10 +1,8 @@
 import { SNSClient, PublishCommand, SubscribeCommand } from '@aws-sdk/client-sns';
 
 // Initialize the AWS SNS Client
-// It automatically picks up credentials from the environment (or IRSA in Kubernetes)
 const snsClient = new SNSClient({ region: 'us-east-1' });
 
-// Injected from environment variables or defaults to provisioned topic
 const SNS_TOPIC_ARN = process.env.SNS_TOPIC_ARN || 'arn:aws:sns:us-east-1:000622214837:healops-dev-alerts';
 
 export interface IncidentNotificationPayload {
@@ -37,6 +35,31 @@ export async function sendNotification(message: string, subject = 'HealOps: Clus
   } catch (error) {
     console.error('[SNS] Failed to send notification:', error);
   }
+}
+
+/**
+ * Formatted natural-language notification sender for Bedrock human summaries
+ */
+export async function sendFormattedNotification(
+  humanSummary: string, 
+  incidentId: string, 
+  statusType: 'PENDING_APPROVAL' | 'CIRCUIT_BREAKER_ESCALATED' | 'REMEDIATED'
+): Promise<void> {
+  const subjectPrefix = 
+    statusType === 'PENDING_APPROVAL' 
+      ? '⚠️ [HealOps Approval Required]' 
+      : statusType === 'CIRCUIT_BREAKER_ESCALATED'
+        ? '🚨 [HealOps Circuit Breaker Escalation]'
+        : '🛡️ [HealOps Remediation Report]';
+
+  const message = `${subjectPrefix} Incident ${incidentId}\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `${humanSummary}\n\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `Dashboard Intervention URL: http://localhost:8080/incidents\n` +
+    `HealOps Autonomous SRE Control Plane`;
+
+  await sendNotification(message, `${subjectPrefix} Incident ${incidentId}`);
 }
 
 /**
