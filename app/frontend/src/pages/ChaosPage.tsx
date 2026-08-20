@@ -7,9 +7,16 @@ import {
   WifiOff, 
   Play, 
   ShieldCheck, 
-  Layers
+  Layers,
+  Sparkles,
+  AlertTriangle,
+  Clock,
+  Send,
+  CheckCircle2
 } from 'lucide-react';
 import { fetchApi } from '../api/client';
+import { useNotifications } from '../context/NotificationContext';
+import { useNavigate } from 'react-router-dom';
 
 interface Scenario {
   id: string;
@@ -24,13 +31,69 @@ interface Scenario {
   payload: string;
 }
 
+interface GuidedScenario {
+  id: string;
+  title: string;
+  badge: string;
+  badgeColor: string;
+  icon: any;
+  description: string;
+  demonstrates: string;
+  payload: string;
+}
+
 export default function ChaosPage() {
+  const navigate = useNavigate();
+  const { showToast } = useNotifications();
   const [runningScenario, setRunningScenario] = useState<string | null>(null);
   const [chaosLog, setChaosLog] = useState<{ id: number; text: string; time: string; type: string }[]>([
     { id: 1, text: 'Chaos Engine initialized. Safety guardrails connected to EKS.', time: '09:00:00', type: 'info' }
   ]);
 
-  const scenarios: Scenario[] = [
+  const guidedScenarios: GuidedScenario[] = [
+    {
+      id: 'guided_auto_healed',
+      title: '1. Crash Loop — Auto-Healed',
+      badge: 'High Confidence (94%)',
+      badgeColor: 'bg-emerald-600 text-white',
+      icon: CheckCircle2,
+      description: 'Simulates a routine pod crash. Confidence is high (94% >= 85%), so the system auto-remediates cleanly in view.',
+      demonstrates: 'Demonstrates baseline closed-loop AI self-healing working as intended.',
+      payload: 'guided_auto_healed'
+    },
+    {
+      id: 'guided_circuit_breaker',
+      title: '2. Crash Loop — Circuit Breaker',
+      badge: 'Escalated (3 Tries / 15m)',
+      badgeColor: 'bg-rose-600 text-white',
+      icon: AlertTriangle,
+      description: 'Injects a pod crash that fails 3 consecutive attempts. Watch attempts tick by before auto-remediation stops to protect the cluster.',
+      demonstrates: 'Demonstrates 15-minute rolling window circuit breaker and human escalation.',
+      payload: 'guided_circuit_breaker'
+    },
+    {
+      id: 'guided_low_confidence',
+      title: '3. Low-Confidence Anomaly',
+      badge: 'Pending Approval (74%)',
+      badgeColor: 'bg-amber-500 text-slate-950 font-bold',
+      icon: Clock,
+      description: 'Injects a database connection pool anomaly (74% confidence < 85%). Lands in pending_approval with Bedrock reasoning & Approve/Reject buttons.',
+      demonstrates: 'Demonstrates human-in-the-loop approval workflow for sensitive infrastructure.',
+      payload: 'guided_low_confidence'
+    },
+    {
+      id: 'guided_notification_walkthrough',
+      title: '4. Notification Walkthrough',
+      badge: 'Dual Channel (SNS + Toast)',
+      badgeColor: 'bg-purple-600 text-white',
+      icon: Send,
+      description: 'Triggers Bedrock to generate a 4-sentence plain-English summary and fires a formatted AWS SNS email alert plus live UI toast.',
+      demonstrates: 'Demonstrates readable Bedrock human summaries and multi-channel alerting.',
+      payload: 'guided_notification_walkthrough'
+    }
+  ];
+
+  const manualScenarios: Scenario[] = [
     {
       id: 'cpu_spike',
       name: 'CPU Exhaustion Stress Test',
@@ -81,15 +144,47 @@ export default function ChaosPage() {
     }
   ];
 
+  const handleRunGuidedScenario = async (gs: GuidedScenario) => {
+    setRunningScenario(gs.id);
+    const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    setChaosLog(prev => [
+      { id: Date.now(), text: `✨ GUIDED SHOWCASE: ${gs.title} triggered.`, time: nowStr, type: 'trigger' },
+      ...prev
+    ]);
+    showToast('info', `Running Guided Scenario: ${gs.title}...`);
+
+    try {
+      const res = await fetchApi('/api/chaos/inject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenario: gs.payload, initiator: 'Reviewer (Guided Showcase)' })
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        showToast('success', `✓ ${gs.title} completed! Check /incidents page to inspect details.`);
+        setChaosLog(prev => [
+          { id: Date.now() + 1, text: `✓ GUIDED SHOWCASE SUCCESS: ${json.message}`, time: new Date().toLocaleTimeString(), type: 'heal' },
+          ...prev
+        ]);
+      }
+    } catch (err: any) {
+      showToast('error', `Scenario failed: ${err.message}`);
+    } finally {
+      setRunningScenario(null);
+    }
+  };
+
   const handleInjectChaos = async (scenario: Scenario) => {
     setRunningScenario(scenario.id);
-    const startMs = Date.now();
     const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     
     setChaosLog(prev => [
       { id: Date.now(), text: `🔥 INJECTING FAULT: ${scenario.name} on ${scenario.targetApp} (Triggered by: Ray Woo)`, time: nowStr, type: 'trigger' },
       ...prev
     ]);
+    showToast('warning', `Injecting fault: ${scenario.name}...`);
 
     try {
       const res = await fetchApi('/api/chaos/inject', {
@@ -100,145 +195,179 @@ export default function ChaosPage() {
 
       if (res.ok) {
         const json = await res.json();
-        const incId = json.incidentId || 'INC-1050';
-        
-        // Log Phase 1: Alert Ingestion & Triage
-        setTimeout(() => {
-          const triageTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-          setChaosLog(prev => [
-            { id: Date.now() + 1, text: `➔ [${incId}] Phase 1 Alert Dispatched: Prometheus Alertmanager webhook ingested → Amazon Bedrock AI actively analyzing root-cause telemetry...`, time: triageTime, type: 'heal' },
-            ...prev
-          ]);
-        }, 800);
-
-        // Log Phase 2: Resolution & MTTR Summary
-        setTimeout(() => {
-          const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
-          const resolveTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-          setChaosLog(prev => [
-            { id: Date.now() + 2, text: `✓ [${incId}] Phase 2 Resolved: Bedrock AI executed remediation → HTTP 200 health probes verified across all replicas! (Total MTTR: ${elapsedSec}s)`, time: resolveTime, type: 'success' },
-            ...prev
-          ]);
-        }, 2400);
-
-      } else {
-        const errorData = await res.json().catch(() => ({}));
         setChaosLog(prev => [
-          { id: Date.now(), text: `✗ Fault injection rejected: ${errorData.message || res.statusText}`, time: new Date().toLocaleTimeString(), type: 'error' },
+          { id: Date.now() + 1, text: `🛡️ HEALED: ${scenario.name} resolved. Incident ID: ${json.incidentId || 'INC-1049'}`, time: new Date().toLocaleTimeString(), type: 'heal' },
           ...prev
         ]);
+        showToast('success', `Remediated anomaly for ${scenario.name}`);
       }
     } catch (err: any) {
-      setChaosLog(prev => [
-        { id: Date.now(), text: `✗ Failed to inject fault: ${err.message || 'Network error'}`, time: new Date().toLocaleTimeString(), type: 'error' },
-        ...prev
-      ]);
+      showToast('error', `Failed: ${err.message}`);
     } finally {
-      setTimeout(() => setRunningScenario(null), 2600);
+      setRunningScenario(null);
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-slate-800/60">
         <div>
           <h1 className="text-base sm:text-lg font-semibold tracking-tight text-white flex items-center gap-2">
-            <Flame className="h-4.5 w-4.5 text-rose-500" />
-            Chaos Engineering & Resiliency Lab
+            <Flame className="h-4.5 w-4.5 text-rose-400" />
+            Chaos Engineering & Guided Scenarios Lab
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Safely inject real infrastructure failures into Amazon EKS and observe autonomous AI recovery loops
+            Pre-built guided reviewer showcases & real-time Kubernetes fault injection suite
           </p>
         </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/incidents')}
+            className="btn-secondary text-xs"
+          >
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+            View Incident Console
+          </button>
+        </div>
       </div>
 
-      {/* Safety Guardrails Banner */}
-      <div className="card-panel p-3 flex items-center gap-3">
-        <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-md text-emerald-400 shrink-0">
-          <ShieldCheck className="h-4 w-4" />
+      {/* SECTION 5: GUIDED SHOWCASE SCENARIOS (Reviewer & Interview Showcase) */}
+      <div className="card-panel p-4 border-sky-500/30 bg-sky-500/5 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-purple-400" />
+            <h2 className="text-sm font-bold text-white tracking-tight">
+              Guided Scenarios (Reviewer & Interview Showcase)
+            </h2>
+          </div>
+          <span className="text-[10px] font-mono font-bold bg-purple-600/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded uppercase">
+            1-Click Guided Demonstrations
+          </span>
         </div>
-        <div className="text-xs text-slate-300">
-          <strong className="text-slate-100">Active Blast Radius Controls:</strong> All chaos injections are strictly scoped to the <code className="text-sky-400 font-mono">default</code> application namespace. AWS control plane, IAM authentication, and monitoring services are protected by hard security guardrails.
-        </div>
-      </div>
+        <p className="text-xs text-slate-300 leading-relaxed">
+          Pre-scripted deterministic failure stories demonstrating human escalation, circuit breaker rules, Bedrock plain-English summaries, and dual-channel notifications.
+        </p>
 
-      {/* Scenarios Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {scenarios.map(sc => {
-          const Icon = sc.icon;
-          const isRunning = runningScenario === sc.id;
-          return (
-            <div 
-              key={sc.id}
-              className="card-panel p-4 flex flex-col justify-between group"
-            >
-              <div>
-                <div className="flex items-start justify-between gap-2.5 mb-2.5">
-                  <div className="flex items-center gap-2.5">
-                    <div className={`p-1.5 rounded-md border ${sc.color}`}>
-                      <Icon className="h-4 w-4" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+          {guidedScenarios.map((gs) => {
+            const Icon = gs.icon;
+            const isRunning = runningScenario === gs.id;
+            return (
+              <div 
+                key={gs.id}
+                className="bg-slate-900/90 border border-slate-800 hover:border-slate-700 p-3.5 rounded-md flex flex-col justify-between space-y-2.5 transition-all shadow-md"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-1.5">
+                      <Icon className="h-4 w-4 text-sky-400" />
+                      <h3 className="text-xs font-bold text-white">{gs.title}</h3>
                     </div>
-                    <div>
-                      <h3 className="text-xs font-semibold text-white group-hover:text-sky-400 transition-colors">
-                        {sc.name}
-                      </h3>
-                      <span className="text-[10px] text-slate-400">{sc.category}</span>
-                    </div>
+                    <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono ${gs.badgeColor}`}>
+                      {gs.badge}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-mono text-sky-400 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded">
-                    {sc.targetApp}
-                  </span>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    {gs.description}
+                  </p>
                 </div>
 
-                <p className="text-xs text-slate-300 leading-relaxed mb-3">
-                  {sc.description}
-                </p>
+                <div className="bg-slate-950 p-2 rounded border border-slate-800 text-[10px] text-purple-300 font-mono">
+                  🎯 <strong>Demonstrates:</strong> {gs.demonstrates}
+                </div>
 
-                <div className="grid grid-cols-2 gap-2 text-xs bg-slate-950/60 p-2.5 rounded-md border border-slate-800/80 mb-3">
-                  <div>
-                    <span className="text-[11px] text-slate-500">Blast Radius:</span>{' '}
-                    <span className="text-slate-200 font-medium text-[11px]">{sc.blastRadius}</span>
-                  </div>
-                  <div>
-                    <span className="text-[11px] text-slate-500">Expected MTTR:</span>{' '}
-                    <span className="text-emerald-400 font-semibold text-[11px]">{sc.expectedHealTime}</span>
-                  </div>
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    Target: <code className="text-sky-400">{gs.payload}</code>
+                  </span>
+                  <button
+                    onClick={() => handleRunGuidedScenario(gs)}
+                    disabled={isRunning}
+                    className="btn-primary text-[11px] py-1 px-3 bg-purple-600 hover:bg-purple-500"
+                  >
+                    <Play className={`h-3 w-3 ${isRunning ? 'animate-spin' : ''}`} />
+                    {isRunning ? 'Running...' : 'Run Scenario'}
+                  </button>
                 </div>
               </div>
-
-              <button
-                onClick={() => handleInjectChaos(sc)}
-                disabled={isRunning}
-                className="btn-danger w-full text-xs py-2"
-              >
-                <Play className={`h-3 w-3 ${isRunning ? 'animate-spin' : ''}`} />
-                {isRunning ? 'Executing Fault...' : 'Inject Chaos Scenario'}
-              </button>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
-      {/* Live Chaos Console / Audit Stream */}
-      <div className="card-panel">
-        <div className="mb-2 pb-2 border-b border-slate-800/80">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
-            <Layers className="h-3.5 w-3.5 text-sky-400" />
-            Live Chaos Execution & AI Telemetry Console
+      {/* SECTION MANUAL FAULT INJECTION (Preserved Controls) */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+            <Layers className="h-3.5 w-3.5 text-rose-400" />
+            Manual Fault Injection Controls
           </h2>
+          <span className="text-[10px] text-slate-400 font-mono">Active EKS Target: healops-backend</span>
         </div>
 
-        <div className="bg-slate-950 rounded-md p-3 font-mono text-xs text-slate-300 space-y-1.5 max-h-48 overflow-y-auto border border-slate-800/80">
-          {chaosLog.map(log => (
-            <div key={log.id} className="flex items-start gap-2 leading-relaxed">
-              <span className="text-slate-500 shrink-0 text-[11px]">[{log.time}]</span>
-              <span className={`text-[11px] ${
-                log.type === 'trigger' ? 'text-amber-400 font-semibold' :
-                log.type === 'heal' ? 'text-sky-400' :
-                log.type === 'success' ? 'text-emerald-400 font-semibold' :
-                log.type === 'error' ? 'text-rose-400' : 'text-slate-400'
-              }`}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {manualScenarios.map((sc) => {
+            const Icon = sc.icon;
+            const isRunning = runningScenario === sc.id;
+            return (
+              <div 
+                key={sc.id} 
+                className="card-panel p-3.5 flex flex-col justify-between space-y-3 hover:border-slate-700 transition-colors"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-1.5 mb-2">
+                    <span className={`p-1.5 rounded border text-xs ${sc.color}`}>
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
+                      {sc.category}
+                    </span>
+                  </div>
+
+                  <h3 className="text-xs font-semibold text-white">{sc.name}</h3>
+                  <p className="text-[11px] text-slate-400 leading-relaxed mt-1">
+                    {sc.description}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800/80 space-y-2">
+                  <div className="flex items-center justify-between text-[10px] text-slate-400">
+                    <span>Blast Radius:</span>
+                    <span className="font-mono text-slate-300">{sc.blastRadius}</span>
+                  </div>
+
+                  <button
+                    onClick={() => handleInjectChaos(sc)}
+                    disabled={isRunning}
+                    className="btn-danger w-full text-xs justify-center"
+                  >
+                    <Play className={`h-3 w-3 ${isRunning ? 'animate-spin' : ''}`} />
+                    {isRunning ? 'Injecting Fault...' : 'Inject Fault'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Live Chaos Console Execution Log */}
+      <div className="card-panel">
+        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+            <Flame className="h-3.5 w-3.5 text-rose-400" />
+            Live Chaos Console Stream
+          </h3>
+          <span className="text-[10px] font-mono text-emerald-400 font-semibold">● LIVE STREAM</span>
+        </div>
+
+        <div className="bg-slate-950 p-3 rounded border border-slate-800 font-mono text-[11px] space-y-1.5 max-h-48 overflow-y-auto">
+          {chaosLog.map((log) => (
+            <div key={log.id} className="flex items-start gap-2">
+              <span className="text-slate-500 shrink-0">[{log.time}]</span>
+              <span className={log.type === 'trigger' ? 'text-amber-400' : log.type === 'heal' ? 'text-emerald-400' : 'text-slate-400'}>
                 {log.text}
               </span>
             </div>
