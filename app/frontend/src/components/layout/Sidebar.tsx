@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
-import { X } from 'lucide-react'
+import { X, Settings } from 'lucide-react'
+import { useUser } from '../../context/UserContext'
 
 interface NavItem {
   label: string
@@ -52,9 +53,22 @@ const NAV_GROUPS: NavGroup[] = [
 interface SidebarProps {
   isOpen?: boolean
   onClose?: () => void
+  onOpenSettings?: () => void
 }
 
-export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
+export default function Sidebar({ isOpen = false, onClose, onOpenSettings }: SidebarProps) {
+  const { userName } = useUser();
+
+  const userInitials = userName
+    ? userName
+        .trim()
+        .split(/\s+/)
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2)
+    : 'RW';
+
   const content = (
     <div className="flex flex-col h-full w-full">
       {/* Logo Header */}
@@ -112,21 +126,26 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         ))}
       </nav>
 
-      {/* User Profile Footer */}
+      {/* Dynamic User Profile Footer */}
       <div
-        className="flex items-center gap-2.5 px-3 py-3 border-t mt-auto shrink-0"
+        onClick={onOpenSettings}
+        className="flex items-center gap-2.5 px-3 py-3 border-t mt-auto shrink-0 cursor-pointer hover:bg-slate-800/60 transition-colors group"
         style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-base)' }}
+        title="Edit User Profile Settings"
       >
         <div
-          className="flex items-center justify-center w-7 h-7 rounded-md text-xs font-semibold text-white shrink-0 shadow-sm"
+          className="flex items-center justify-center w-7 h-7 rounded-md text-xs font-bold text-white shrink-0 shadow-sm"
           style={{ background: 'linear-gradient(135deg, #0ea5e9, #6366f1)' }}
         >
-          RW
+          {userInitials}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>Ray Woo</p>
+          <p className="text-xs font-semibold truncate group-hover:text-sky-400 transition-colors" style={{ color: 'var(--color-text-primary)' }}>
+            {userName}
+          </p>
           <p className="text-[10px] text-slate-400 truncate">SRE Admin</p>
         </div>
+        <Settings className="h-3.5 w-3.5 text-slate-500 group-hover:text-sky-400 shrink-0 transition-colors" />
       </div>
     </div>
   )
