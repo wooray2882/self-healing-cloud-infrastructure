@@ -20,13 +20,14 @@ import { webhookRouter } from './routes/webhook';
 import { subscribeRouter } from './routes/subscribe';
 import { chaosRouter } from './routes/chaos';
 import { clusterRouter } from './routes/cluster';
+import { cicdRouter } from './routes/cicd';
 
 // Register Routes
 app.use('/api/webhook', webhookRouter);
 app.use('/api/subscribe', subscribeRouter);
 app.use('/api/chaos', chaosRouter);
 app.use('/api/cluster', clusterRouter);
-
+app.use('/api/cicd', cicdRouter);
 
 import { createServer } from 'http';
 import { Server } from 'socket.io';
