@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import AIChatWidget from '../ai/AIChatWidget'
+import SubscriptionModal from '../SubscriptionModal'
 
 const PAGE_TITLES: Record<string, string> = {
   '/overview':     'Cluster Overview',
@@ -25,14 +26,18 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const { pathname } = useLocation()
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [isSubModalOpen, setIsSubModalOpen] = useState(false)
   const title = PAGE_TITLES[pathname] ?? 'HealOps'
 
   return (
     <div className="flex h-screen overflow-hidden relative" style={{ background: 'var(--color-bg-base)' }}>
+      <SubscriptionModal isOpen={isSubModalOpen} onClose={() => setIsSubModalOpen(false)} />
+
       {/* Sidebar (Permanent on Desktop, Drawer on Mobile) */}
       <Sidebar 
         isOpen={mobileSidebarOpen} 
         onClose={() => setMobileSidebarOpen(false)} 
+        onOpenSettings={() => setIsSubModalOpen(true)}
       />
 
       {/* Main Content Area */}
