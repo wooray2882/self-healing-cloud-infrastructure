@@ -26,8 +26,8 @@ export default function SecurityAuditTable({ auditLogs }: SecurityAuditTableProp
   const [selectedFilter, setSelectedFilter] = useState<string>('ALL');
 
   const filterCategories = [
-    { id: 'ALL', label: 'All Events' },
-    { id: 'IAM', label: 'AWS IAM STS' },
+    { id: 'ALL', label: 'All' },
+    { id: 'IAM', label: 'AWS IAM' },
     { id: 'TRIVY', label: 'Trivy CVEs' },
     { id: 'AI', label: 'AI Guardrails' },
     { id: 'RBAC', label: 'K8s RBAC' },
@@ -90,27 +90,27 @@ export default function SecurityAuditTable({ auditLogs }: SecurityAuditTableProp
   return (
     <div className="card-panel">
       {/* Header with Search and Filter */}
-      <div className="p-4 pb-3 border-b border-slate-800/80">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+      <div className="p-3.5 pb-2.5 border-b border-slate-800/80">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2.5">
           <div>
             <h2 className="text-xs sm:text-sm font-semibold text-white flex items-center gap-2">
               <Terminal className="h-4 w-4 text-sky-400" />
-              Real-Time DevSecOps Security Audit Log
+              Security Audit Log
             </h2>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              Live cryptographic verification stream of AWS STS authentication, Trivy CVE scans, and AI safety guardrails
+              Audit stream of AWS STS, Trivy CVE scans, and AI safety guardrails
             </p>
           </div>
 
           {/* Search Box */}
-          <div className="relative w-full md:w-64">
+          <div className="relative w-full md:w-56">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Search audit records..."
+              placeholder="Filter log events..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 rounded-md pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-colors"
+              className="w-full bg-slate-900 border border-slate-800 rounded-md pl-8 pr-3 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-colors"
             />
           </div>
         </div>
@@ -121,7 +121,7 @@ export default function SecurityAuditTable({ auditLogs }: SecurityAuditTableProp
             <button
               key={tab.id}
               onClick={() => setSelectedFilter(tab.id)}
-              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all whitespace-nowrap ${
+              className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition-all whitespace-nowrap ${
                 selectedFilter === tab.id
                   ? 'bg-sky-600 text-white font-bold shadow-sm'
                   : 'bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800/80'
@@ -136,37 +136,37 @@ export default function SecurityAuditTable({ auditLogs }: SecurityAuditTableProp
       {/* Audit Log Table / Stream */}
       <div className="divide-y divide-slate-800/60">
         {filteredLogs.length === 0 ? (
-          <div className="py-8 text-center text-slate-400 text-xs">
-            No security audit events match the current search filter.
+          <div className="py-6 text-center text-slate-400 text-xs">
+            No events match current filter.
           </div>
         ) : (
           filteredLogs.map((log) => (
             <div 
               key={log.id} 
-              className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-800/20 transition-colors"
+              className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-slate-800/20 transition-colors"
             >
-              <div className="flex items-start gap-3">
-                <div className="p-1.5 bg-slate-900 border border-slate-800 text-sky-400 rounded mt-0.5 shrink-0">
+              <div className="flex items-start gap-2.5">
+                <div className="p-1 bg-slate-900 border border-slate-800 text-sky-400 rounded mt-0.5 shrink-0">
                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
                 </div>
                 <div>
                   <div className="text-xs font-mono text-slate-200 leading-relaxed">
                     {log.message}
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-1 flex flex-wrap items-center gap-2">
+                  <div className="text-[10px] text-slate-400 mt-0.5 flex flex-wrap items-center gap-2">
                     <span>
                       Target: <strong className="text-sky-400 font-semibold">{log.target}</strong>
                     </span>
                     <span className="text-slate-600">•</span>
-                    <span className="font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800/80">
+                    <span className="font-mono text-slate-400 bg-slate-900 px-1.5 py-0.2 rounded border border-slate-800/80">
                       {log.type}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
-                <span className="text-[11px] text-slate-400 font-mono">
+              <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
+                <span className="text-[10px] text-slate-400 font-mono">
                   {log.timestamp}
                 </span>
                 {getSeverityBadge(log.severity)}
@@ -177,12 +177,12 @@ export default function SecurityAuditTable({ auditLogs }: SecurityAuditTableProp
       </div>
 
       {/* Footer */}
-      <div className="p-3 bg-slate-950/50 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+      <div className="p-2.5 bg-slate-950/50 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
         <span className="flex items-center gap-1.5 font-medium">
           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-          Showing {filteredLogs.length} verified security audit records
+          Showing {filteredLogs.length} records
         </span>
-        <span className="font-mono text-slate-400">Immutable Hash Stream Active</span>
+        <span className="font-mono text-slate-400 text-[10px]">Immutable Stream Active</span>
       </div>
     </div>
   );

@@ -15,7 +15,8 @@ import {
   Sparkles,
   RefreshCw,
   Box,
-  Layers
+  Layers,
+  Info
 } from 'lucide-react';
 import { fetchApi } from '../api/client';
 
@@ -298,16 +299,16 @@ export default function CICDPage() {
         <div>
           <h1 className="text-base sm:text-lg font-semibold tracking-tight text-white flex items-center gap-2">
             <GitPullRequest className="h-4.5 w-4.5 text-sky-400" />
-            CI/CD & GitOps Delivery Pipeline
+            CI/CD Pipeline
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Continuous Integration, DevSecOps vulnerability audits, and Amazon EKS automated rollouts
+            Continuous Integration & Amazon EKS Automated Rollouts
           </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="px-2.5 py-1 bg-emerald-600 text-white rounded-md text-[11px] font-bold flex items-center gap-1.5 shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-            GitOps Pipeline Active
+            Pipeline Active
           </span>
           <button
             onClick={fetchCicdData}
@@ -320,42 +321,66 @@ export default function CICDPage() {
         </div>
       </div>
 
-      {/* DORA Engineering Metrics Strip */}
+      {/* DORA Metrics Strip with Interactive Hover Tooltips */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="card-panel p-3">
+        <div className="card-panel p-3 relative group">
           <div className="flex items-center justify-between text-[11px] text-slate-400">
             <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5 text-sky-400" /> Lead Time</span>
-            <span className="bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">ELITE TIER</span>
+            <div className="flex items-center gap-1">
+              <span className="bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">ELITE</span>
+              <Info className="h-3 w-3 text-slate-400 hover:text-sky-400 cursor-pointer" />
+              <div className="absolute left-2 top-10 hidden group-hover:block w-56 p-2 bg-slate-900 border border-slate-700 shadow-2xl rounded-md text-[11px] text-slate-300 z-50 pointer-events-none leading-relaxed">
+                Time from Git commit push to live rolling update on Amazon EKS.
+              </div>
+            </div>
           </div>
           <div className="text-lg sm:text-xl font-semibold text-white font-mono mt-1">{dora.leadTimeForChanges || '49s'}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Git commit push $\rightarrow$ live on EKS</div>
+          <div className="text-[10px] text-slate-400 mt-0.5 truncate">Commit push $\rightarrow$ live on EKS</div>
         </div>
 
-        <div className="card-panel p-3">
+        <div className="card-panel p-3 relative group">
           <div className="flex items-center justify-between text-[11px] text-slate-400">
             <span className="flex items-center gap-1"><Zap className="h-3.5 w-3.5 text-amber-400" /> Frequency</span>
-            <span className="bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">CONTINUOUS</span>
+            <div className="flex items-center gap-1">
+              <span className="bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">CONTINUOUS</span>
+              <Info className="h-3 w-3 text-slate-400 hover:text-sky-400 cursor-pointer" />
+              <div className="absolute left-2 top-10 hidden group-hover:block w-56 p-2 bg-slate-900 border border-slate-700 shadow-2xl rounded-md text-[11px] text-slate-300 z-50 pointer-events-none leading-relaxed">
+                Automated pipeline triggers on every branch commit push.
+              </div>
+            </div>
           </div>
           <div className="text-lg sm:text-xl font-semibold text-white font-mono mt-1">{dora.deploymentFrequency || 'On-Demand'}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Automated GitHub Actions triggers</div>
+          <div className="text-[10px] text-slate-400 mt-0.5 truncate">Automated GitHub Actions</div>
         </div>
 
-        <div className="card-panel p-3">
+        <div className="card-panel p-3 relative group">
           <div className="flex items-center justify-between text-[11px] text-slate-400">
             <span className="flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> Failure Rate</span>
-            <span className="bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">0 FAILURES</span>
+            <div className="flex items-center gap-1">
+              <span className="bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">0 FAIL</span>
+              <Info className="h-3 w-3 text-slate-400 hover:text-sky-400 cursor-pointer" />
+              <div className="absolute right-2 top-10 hidden group-hover:block w-56 p-2 bg-slate-900 border border-slate-700 shadow-2xl rounded-md text-[11px] text-slate-300 z-50 pointer-events-none leading-relaxed">
+                Percentage of deployments requiring rollback or hotfixes.
+              </div>
+            </div>
           </div>
           <div className="text-lg sm:text-xl font-semibold text-white font-mono mt-1">{dora.changeFailureRate || '0.0%'}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Validated via automated probes</div>
+          <div className="text-[10px] text-slate-400 mt-0.5 truncate">Verified via readiness probes</div>
         </div>
 
-        <div className="card-panel p-3">
+        <div className="card-panel p-3 relative group">
           <div className="flex items-center justify-between text-[11px] text-slate-400">
             <span className="flex items-center gap-1"><Sparkles className="h-3.5 w-3.5 text-purple-400" /> Recovery (MTTR)</span>
-            <span className="bg-sky-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">AUTOPILOT</span>
+            <div className="flex items-center gap-1">
+              <span className="bg-sky-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">AUTOPILOT</span>
+              <Info className="h-3 w-3 text-slate-400 hover:text-sky-400 cursor-pointer" />
+              <div className="absolute right-2 top-10 hidden group-hover:block w-56 p-2 bg-slate-900 border border-slate-700 shadow-2xl rounded-md text-[11px] text-slate-300 z-50 pointer-events-none leading-relaxed">
+                Mean time to recovery using AWS Bedrock automated incident remediation.
+              </div>
+            </div>
           </div>
           <div className="text-lg sm:text-xl font-semibold text-white font-mono mt-1">{dora.meanTimeToRecovery || '4.2s'}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Bedrock closed-loop remediation</div>
+          <div className="text-[10px] text-slate-400 mt-0.5 truncate">Bedrock closed-loop engine</div>
         </div>
       </div>
 
@@ -466,13 +491,13 @@ export default function CICDPage() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-xs font-semibold text-white">DevSecOps Security & Compliance Audit</h3>
+              <h3 className="text-xs font-semibold text-white">Security & Compliance Audit</h3>
               <span className="text-[10px] font-mono bg-emerald-600 text-white px-2 py-0.5 rounded font-bold">
                 CIS A+ (98.2%)
               </span>
             </div>
             <p className="text-[11px] text-slate-300 mt-0.5">
-              Verified 0 Critical/High CVEs via AquaSecurity Trivy. Passwordless AWS STS OIDC federation active.
+              Verified 0 Critical/High CVEs via AquaSecurity Trivy. Passwordless AWS STS OIDC active.
             </p>
           </div>
         </div>
@@ -487,10 +512,10 @@ export default function CICDPage() {
 
       {/* Historical Deployment Runs */}
       <div className="card-panel">
-        <div className="p-4 pb-2 border-b border-slate-800/80">
+        <div className="p-3.5 pb-2 border-b border-slate-800/80">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
             <Clock className="h-3.5 w-3.5 text-sky-400" />
-            Deployment History & Git Traceability
+            Deployment History
           </h2>
         </div>
 
