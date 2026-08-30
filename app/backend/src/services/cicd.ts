@@ -220,7 +220,119 @@ export const inMemoryRuns: PipelineRun[] = [
   }
 ];
 
+async function fetchGitHubWorkflowRuns(): Promise<PipelineRun[]> {
+  const repo = 'wooray2882/self-healing-cloud-infrastructure';
+  const url = `https://api.github.com/repos/${repo}/actions/runs?per_page=10`;
+  const headers: any = {
+    'Accept': 'application/vnd.github.v3+json',
+    'User-Agent': 'HealOps-Backend'
+  };
+  
+  if (process.env.GITHUB_TOKEN) {
+    headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+  }
+
+  const response = await fetch(url, { headers });
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  if (!data.workflow_runs) return [];
+
+  return data.workflow_runs.map((run: any): PipelineRun => {
+    let durationStr = '0s';
+    if (run.created_at && run.updated_at) {
+      const start = new Date(run.created_at).getTime();
+      const end = new Date(run.updated_at).getTime();
+      const diffSecs = Math.floor((end - start) / 1000);
+      durationStr = diffSecs > 60 ? `${Math.floor(diffSecs/60)}m ${diffSecs%60}s` : `${diffSecs}s`;
+    }
+    
+    let mappedStatus: 'success' | 'running' | 'failed' = 'running';
+    if (run.status === 'completed') {
+      mappedStatus = run.conclusion === 'success' ? 'success' : 'failed';
+    }
+
+    return {
+      id: run.id.toString(),
+      workflowName: run.name || 'GitHub Actions Workflow',
+      commitSha: run.head_sha ? run.head_sha.substring(0, 7) : 'unknown',
+      commitMessage: run.head_commit?.message || run.display_title || 'No commit message',
+      author: run.actor?.login || 'unknown',
+      branch: run.head_branch || 'main',
+      status: mappedStatus,
+      duration: durationStr,
+      timestamp: new Date(run.created_at).toLocaleString(),
+      stages: []
+    };
+  });
+}
+
+async function fetchGitHubWorkflowJobs(runId: string): Promise<PipelineStage[]> {
+  const repo = 'wooray2882/self-healing-cloud-infrastructure';
+  const url = `https://api.github.com/repos/${repo}/actions/runs/${runId}/jobs`;
+  const headers: any = {
+    'Accept': 'application/vnd.github.v3+json',
+    'User-Agent': 'HealOps-Backend'
+  };
+  
+  if (process.env.GITHUB_TOKEN) {
+    headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+  }
+
+  const response = await fetch(url, { headers });
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  if (!data.jobs || data.jobs.length === 0) return [];
+  
+  const firstJob = data.jobs[0];
+  if (!firstJob.steps) return [];
+  
+  return firstJob.steps.map((step: any, index: number): PipelineStage => {
+    let durationStr = '0s';
+    if (step.started_at && step.completed_at) {
+      const start = new Date(step.started_at).getTime();
+      const end = new Date(step.completed_at).getTime();
+      const diffSecs = Math.floor((end - start) / 1000);
+      durationStr = `${diffSecs}s`;
+    }
+    
+    let mappedStatus: 'success' | 'running' | 'queued' | 'failed' = 'queued';
+    if (step.status === 'in_progress') mappedStatus = 'running';
+    else if (step.status === 'completed') mappedStatus = step.conclusion === 'success' ? 'success' : 'failed';
+    
+    return {
+      id: `step-${step.number || index}`,
+      name: step.name,
+      shortLabel: step.name.length > 15 ? step.name.substring(0, 15) + '...' : step.name,
+      category: 'ops',
+      phase: 'Pipeline Step',
+      status: mappedStatus,
+      duration: durationStr,
+      description: `GitHub Actions step: ${step.name}`,
+      command: 'N/A',
+      logs: [`[GitHub Actions] Step started: ${step.name}`, `Status: ${step.status}`, `Conclusion: ${step.conclusion || 'pending'}`]
+    };
+  });
+}
+
 export async function getCICDPipelineData(): Promise<CICDData> {
+  let runs = inMemoryRuns;
+  try {
+    const ghRuns = await fetchGitHubWorkflowRuns();
+    if (ghRuns.length > 0) {
+      runs = ghRuns;
+      const activeRun = runs[0];
+      activeRun.stages = await fetchGitHubWorkflowJobs(activeRun.id);
+    }
+  } catch (err) {
+    console.error('[CICD Service] WARNING: Failed to fetch live GitHub Actions data. Falling back to mock data.', err);
+  }
+
   return {
     doraMetrics: {
       leadTimeForChanges: '49s',
@@ -235,8 +347,8 @@ export async function getCICDPipelineData(): Promise<CICDData> {
       status: 'VERIFIED_CLEAN',
       lastScanned: 'Just now'
     },
-    activeRun: inMemoryRuns[0],
-    history: inMemoryRuns
+    activeRun: runs[0],
+    history: runs
   };
 }
 
