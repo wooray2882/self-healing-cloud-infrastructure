@@ -22,6 +22,7 @@ import { chaosRouter } from './routes/chaos';
 import { clusterRouter } from './routes/cluster';
 import { cicdRouter } from './routes/cicd';
 import { incidentsRouter } from './routes/incidents';
+import { aiRouter } from './routes/ai';
 
 // Register Routes
 app.use('/api/webhook', webhookRouter);
@@ -30,6 +31,8 @@ app.use('/api/chaos', chaosRouter);
 app.use('/api/cluster', clusterRouter);
 app.use('/api/cicd', cicdRouter);
 app.use('/api/incidents', incidentsRouter);
+app.use('/api/ai', aiRouter);
+app.use('/api/chat', aiRouter);
 
 import { createServer } from 'http';
 import { Server } from 'socket.io';
