@@ -18,7 +18,7 @@
     "@aws-sdk/client-sns": "^3.1109.0",
     "@kubernetes/client-node": "^2.0.0",
     "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
+    "dotenv": "^18.0.1",
     "express": "^5.2.1",
     "socket.io": "^4.8.3"
   },
